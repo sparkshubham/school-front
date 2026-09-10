@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
 import { PageHeader, Modal, Empty } from '../components/ui.jsx';
+import Pagination from '../components/Pagination.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
+import { PAGE_SIZE } from '../utils/session.js';
 
 export default function Teachers() {
   const { t } = useLang();
   const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [q, setQ] = useState('');
   const [qDebounced, setQDebounced] = useState('');
   const [open, setOpen] = useState(false);
@@ -14,18 +19,21 @@ export default function Teachers() {
   const [creds, setCreds] = useState(null);
   const [error, setError] = useState('');
 
-  async function load() {
-    const { data } = await api.get('/teachers', { params: { q: qDebounced } });
+  async function load(nextPage = page) {
+    const { data } = await api.get('/teachers', { params: { q: qDebounced, page: nextPage, limit: PAGE_SIZE } });
     setItems(data.items || []);
+    setTotal(data.total || 0);
+    setPages(data.pages || 1);
+    setPage(data.page || nextPage);
   }
 
   useEffect(() => {
-    const t = setTimeout(() => setQDebounced(q), 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setQDebounced(q), 300);
+    return () => clearTimeout(timer);
   }, [q]);
 
   useEffect(() => {
-    load();
+    load(1);
   }, [qDebounced]);
 
   function startCreate() {
@@ -159,6 +167,7 @@ export default function Teachers() {
             </tbody>
           </table>
         </div>
+        <Pagination page={page} pages={pages} total={total} onPage={load} />
       </div>
 
       {open && (

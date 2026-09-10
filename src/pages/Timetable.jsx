@@ -13,7 +13,7 @@ export default function Timetable() {
   const [periods, setPeriods] = useState([]);
 
   useEffect(() => {
-    api.get('/meta').then((r) => {
+    api.get('/meta', { params: { keys: 'classes,periods' } }).then((r) => {
       const items = r.data.classes || [];
       setClasses(items);
       const c10 = items.find((c) => c.numeric === 10) || items[0];

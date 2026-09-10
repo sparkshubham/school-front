@@ -1,23 +1,32 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
 import { PageHeader, Modal, Badge } from '../components/ui.jsx';
+import Pagination from '../components/Pagination.jsx';
 import { fullName } from '../utils/format.js';
 import { useLang } from '../context/LanguageContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { PAGE_SIZE } from '../utils/session.js';
 
 export default function Exams() {
   const { t } = useLang();
   const { school } = useAuth();
   const [exams, setExams] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState(null);
   const [results, setResults] = useState(null);
+  const [resultPage, setResultPage] = useState(1);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', type: 'term' });
   const [card, setCard] = useState(null);
 
-  async function load() {
-    const { data } = await api.get('/exams');
+  async function load(nextPage = 1) {
+    const { data } = await api.get('/exams', { params: { page: nextPage, limit: PAGE_SIZE } });
     setExams(data.items || []);
+    setTotal(data.total || 0);
+    setPages(data.pages || 1);
+    setPage(data.page || nextPage);
   }
   useEffect(() => {
     load();
@@ -30,10 +39,11 @@ export default function Exams() {
     load();
   }
 
-  async function showResults(exam) {
+  async function showResults(exam, nextPage = 1) {
     setSelected(exam);
-    const { data } = await api.get(`/exams/${exam._id}/results`);
+    const { data } = await api.get(`/exams/${exam._id}/results`, { params: { page: nextPage, limit: PAGE_SIZE } });
     setResults(data);
+    setResultPage(data.page || nextPage);
     setCard(null);
   }
 
@@ -66,6 +76,11 @@ export default function Exams() {
           </button>
         ))}
       </div>
+      {pages > 1 && (
+        <div className="mb-6">
+          <Pagination page={page} pages={pages} total={total} onPage={load} />
+        </div>
+      )}
       {results && (
         <div className="card table-wrap">
           <div className="p-4 font-semibold">{t('exams.results', { name: results.exam.name })}</div>
@@ -103,6 +118,12 @@ export default function Exams() {
               ))}
             </tbody>
           </table>
+          <Pagination
+            page={results.page || resultPage}
+            pages={results.pages || 1}
+            total={results.total || results.rows.length}
+            onPage={(p) => showResults(selected, p)}
+          />
         </div>
       )}
       {card && (

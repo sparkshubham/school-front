@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
 import { PageHeader, Modal, Empty, Badge } from '../components/ui.jsx';
+import Pagination from '../components/Pagination.jsx';
 import { fullName } from '../utils/format.js';
 import { useLang } from '../context/LanguageContext.jsx';
+import { PAGE_SIZE } from '../utils/session.js';
 
 export default function Students() {
   const { t } = useLang();
   const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [classes, setClasses] = useState([]);
   const [sections, setSections] = useState([]);
   const [q, setQ] = useState('');
@@ -15,25 +20,30 @@ export default function Students() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ createLogin: true });
 
-  async function load() {
-    const { data } = await api.get('/students', { params: { q: qDebounced, classId } });
+  async function load(nextPage = page) {
+    const { data } = await api.get('/students', {
+      params: { q: qDebounced, classId, page: nextPage, limit: PAGE_SIZE },
+    });
     setItems(data.items || []);
+    setTotal(data.total || 0);
+    setPages(data.pages || 1);
+    setPage(data.page || nextPage);
   }
 
   useEffect(() => {
-    const t = setTimeout(() => setQDebounced(q), 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setQDebounced(q), 300);
+    return () => clearTimeout(timer);
   }, [q]);
 
   useEffect(() => {
-    api.get('/meta').then((r) => {
+    api.get('/meta', { params: { keys: 'classes,sections' } }).then((r) => {
       setClasses(r.data.classes || []);
       setSections(r.data.sections || []);
     });
   }, []);
 
   useEffect(() => {
-    load();
+    load(1);
   }, [qDebounced, classId]);
 
   async function save(e) {
@@ -41,7 +51,7 @@ export default function Students() {
     await api.post('/students', { ...form, createLogin: true });
     setOpen(false);
     setForm({ createLogin: true });
-    load();
+    load(1);
   }
 
   return (
@@ -105,6 +115,7 @@ export default function Students() {
             </tbody>
           </table>
         </div>
+        <Pagination page={page} pages={pages} total={total} onPage={load} />
       </div>
       {open && (
         <Modal title={t('students.new')} onClose={() => setOpen(false)}>

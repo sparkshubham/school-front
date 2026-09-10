@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
 import { PageHeader, StatCard } from '../components/ui.jsx';
+import Pagination from '../components/Pagination.jsx';
 import { inr } from '../utils/format.js';
 import { useLang } from '../context/LanguageContext.jsx';
 
@@ -8,11 +9,17 @@ export default function Reports() {
   const { t, locale } = useLang();
   const [fees, setFees] = useState(null);
   const [attn, setAttn] = useState(null);
+  const [attnPage, setAttnPage] = useState(1);
+  async function loadAttn(nextPage = 1) {
+    const { data } = await api.get('/attendance/reports', { params: { page: nextPage, limit: 20 } });
+    setAttn(data);
+    setAttnPage(data.page || nextPage);
+  }
   useEffect(() => {
     api.get('/fees/reports').then((r) => setFees(r.data));
-    api.get('/attendance/reports').then((r) => setAttn(r.data));
+    loadAttn(1);
   }, []);
-  const low = attn?.rows?.filter((r) => r.low) || [];
+  const low = attn?.rows?.filter((r) => r.low) || attn?.rows || [];
   return (
     <div>
       <PageHeader title={t('reports.title')} subtitle={t('reports.subtitle')} />
@@ -32,6 +39,9 @@ export default function Reports() {
             <span>{r.percentage}%</span>
           </div>
         ))}
+        {attn && (
+          <Pagination page={attnPage} pages={attn.pages || 1} total={attn.total || 0} onPage={loadAttn} />
+        )}
       </div>
     </div>
   );

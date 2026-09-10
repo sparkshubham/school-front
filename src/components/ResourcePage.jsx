@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
-import { PageHeader, Modal, Empty } from '../components/ui.jsx';
+import { PageHeader, Modal, Empty } from './ui.jsx';
+import Pagination from './Pagination.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
+import { PAGE_SIZE } from '../utils/session.js';
 
 export default function ResourcePage({
   title,
@@ -13,24 +15,31 @@ export default function ResourcePage({
 }) {
   const { t } = useLang();
   const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [q, setQ] = useState('');
   const [qDebounced, setQDebounced] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({});
   const [editing, setEditing] = useState(null);
 
-  async function load() {
-    const { data } = await api.get(path, { params: { q: qDebounced } });
+  async function load(nextPage = page) {
+    const { data } = await api.get(path, { params: { q: qDebounced, page: nextPage, limit: PAGE_SIZE } });
     setItems(data.items || []);
+    setTotal(data.total || 0);
+    setPages(data.pages || 1);
+    setPage(data.page || nextPage);
   }
 
   useEffect(() => {
-    const t = setTimeout(() => setQDebounced(q), 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setQDebounced(q), 300);
+    return () => clearTimeout(timer);
   }, [q]);
 
   useEffect(() => {
-    load();
+    setPage(1);
+    load(1);
   }, [path, qDebounced]);
 
   function startCreate() {
@@ -55,13 +64,13 @@ export default function ResourcePage({
     if (editing) await api.patch(`${path}/${editing._id}`, form);
     else await api.post(path, form);
     setOpen(false);
-    load();
+    load(editing ? page : 1);
   }
 
   async function remove(row) {
     if (!confirm(t('common.confirmDelete'))) return;
     await api.delete(`${path}/${row._id}`);
-    load();
+    load(page);
   }
 
   return (
@@ -115,6 +124,7 @@ export default function ResourcePage({
             </tbody>
           </table>
         </div>
+        <Pagination page={page} pages={pages} total={total} onPage={load} />
       </div>
       {open && (
         <Modal title={editing ? t('common.edit') : t('common.create')} onClose={() => setOpen(false)}>

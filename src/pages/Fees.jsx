@@ -1,25 +1,37 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
 import { PageHeader, Modal, StatCard, Badge } from '../components/ui.jsx';
+import Pagination from '../components/Pagination.jsx';
 import { fullName, inr } from '../utils/format.js';
 import { useLang } from '../context/LanguageContext.jsx';
+import { PAGE_SIZE } from '../utils/session.js';
 
 export default function Fees() {
   const { t, locale } = useLang();
   const [invoices, setInvoices] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [report, setReport] = useState(null);
   const [pay, setPay] = useState(null);
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState('upi');
   const [status, setStatus] = useState('');
 
-  async function load() {
-    const [inv, rep] = await Promise.all([api.get('/fees/invoices', { params: { status } }), api.get('/fees/reports')]);
+  async function load(nextPage = 1) {
+    const invReq = api.get('/fees/invoices', { params: { status, page: nextPage, limit: PAGE_SIZE } });
+    const [inv, rep] = await Promise.all([
+      invReq,
+      nextPage === 1 ? api.get('/fees/reports') : Promise.resolve(null),
+    ]);
     setInvoices(inv.data.items || []);
-    setReport(rep.data);
+    setTotal(inv.data.total || 0);
+    setPages(inv.data.pages || 1);
+    setPage(inv.data.page || nextPage);
+    if (rep) setReport(rep.data);
   }
   useEffect(() => {
-    load();
+    load(1);
   }, [status]);
 
   async function collect(e) {
@@ -88,6 +100,7 @@ export default function Fees() {
             ))}
           </tbody>
         </table>
+        <Pagination page={page} pages={pages} total={total} onPage={load} />
       </div>
       {pay && (
         <Modal title={`${t('fees.collect')} · ${pay.invoiceNo}`} onClose={() => setPay(null)}>

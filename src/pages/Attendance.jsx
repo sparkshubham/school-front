@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
 import { PageHeader, Badge } from '../components/ui.jsx';
+import Pagination from '../components/Pagination.jsx';
 import { fullName } from '../utils/format.js';
 import { useLang } from '../context/LanguageContext.jsx';
+import { PAGE_SIZE } from '../utils/session.js';
 
 const STATUSES = ['present', 'absent', 'late', 'half_day', 'leave'];
 
@@ -19,7 +21,7 @@ export default function Attendance() {
   const [tab, setTab] = useState('mark');
 
   useEffect(() => {
-    api.get('/meta').then((r) => {
+    api.get('/meta', { params: { keys: 'classes,sections' } }).then((r) => {
       const items = r.data.classes || [];
       setClasses(items);
       if (items[0]) setClassId(items.find((c) => c.numeric === 10)?._id || items[0]._id);
@@ -49,8 +51,10 @@ export default function Attendance() {
     alert(t('attendance.saved'));
   }
 
-  async function loadReport() {
-    const { data } = await api.get('/attendance/reports', { params: { classId, sectionId } });
+  async function loadReport(nextPage = 1) {
+    const { data } = await api.get('/attendance/reports', {
+      params: { classId, sectionId, page: nextPage, limit: PAGE_SIZE },
+    });
     setReport(data);
   }
 
@@ -148,6 +152,12 @@ export default function Attendance() {
               ))}
             </tbody>
           </table>
+          <Pagination
+            page={report.page || 1}
+            pages={report.pages || 1}
+            total={report.total || report.rows.length}
+            onPage={loadReport}
+          />
         </div>
       )}
     </div>

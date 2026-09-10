@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../api/client.js';
 import ResourcePage from '../components/ResourcePage.jsx';
 import { Badge } from '../components/ui.jsx';
+import Pagination from '../components/Pagination.jsx';
 import { fmtDate } from '../utils/format.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
@@ -41,18 +42,24 @@ export default function Leaves() {
 function TeacherLeave({ form, setForm }) {
   const { t, locale } = useLang();
   const [items, setItems] = useState([]);
-  async function load() {
-    const { data } = await api.get('/leaves');
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  async function load(nextPage = 1) {
+    const { data } = await api.get('/leaves', { params: { page: nextPage, limit: 20 } });
     setItems(data.items || []);
+    setTotal(data.total || 0);
+    setPages(data.pages || 1);
+    setPage(data.page || nextPage);
   }
   useEffect(() => {
-    load();
+    load(1);
   }, []);
   async function submit(e) {
     e.preventDefault();
     await api.post('/leaves', form);
     setForm({ type: 'casual', reason: '', fromDate: '', toDate: '' });
-    load();
+    load(1);
   }
   return (
     <div>
@@ -76,6 +83,7 @@ function TeacherLeave({ form, setForm }) {
             <Badge status={i.status} />
           </div>
         ))}
+        <Pagination page={page} pages={pages} total={total} onPage={load} />
       </div>
     </div>
   );

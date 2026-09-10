@@ -1,12 +1,37 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import api from '../api/client.js';
+import {
+  decodeAccessToken,
+  persistSchool,
+  readCachedSchool,
+  schoolFromPayload,
+  userFromPayload,
+} from '../utils/session.js';
 
 const AuthContext = createContext(null);
 
+function bootSession() {
+  const token = localStorage.getItem('edunest_access');
+  const payload = decodeAccessToken(token);
+  if (!payload) {
+    if (token) {
+      localStorage.removeItem('edunest_access');
+      localStorage.removeItem('edunest_refresh');
+    }
+    return { user: null, school: null, blocked: false };
+  }
+  return {
+    user: userFromPayload(payload),
+    school: schoolFromPayload(payload, readCachedSchool()),
+    blocked: false,
+  };
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [school, setSchool] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [boot] = useState(bootSession);
+  const [user, setUser] = useState(boot.user);
+  const [school, setSchool] = useState(boot.school);
+  const [loading, setLoading] = useState(boot.blocked);
 
   async function loadMe() {
     const token = localStorage.getItem('edunest_access');
@@ -18,10 +43,15 @@ export function AuthProvider({ children }) {
       const { data } = await api.get('/auth/me');
       setUser(data.user);
       setSchool(data.school);
-    } catch {
-      localStorage.removeItem('edunest_access');
-      localStorage.removeItem('edunest_refresh');
-      setUser(null);
+      persistSchool(data.school);
+    } catch (err) {
+      if (err.response?.status === 401) {
+        localStorage.removeItem('edunest_access');
+        localStorage.removeItem('edunest_refresh');
+        persistSchool(null);
+        setUser(null);
+        setSchool(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -35,6 +65,7 @@ export function AuthProvider({ children }) {
     const { data } = await api.post('/auth/login', { email, password });
     localStorage.setItem('edunest_access', data.accessToken);
     if (data.refreshToken) localStorage.setItem('edunest_refresh', data.refreshToken);
+    persistSchool(data.school);
     setUser(data.user);
     setSchool(data.school);
     return data.user;
@@ -43,6 +74,7 @@ export function AuthProvider({ children }) {
   function applySession(data) {
     localStorage.setItem('edunest_access', data.accessToken);
     if (data.refreshToken) localStorage.setItem('edunest_refresh', data.refreshToken);
+    persistSchool(data.school);
     setUser(data.user);
     setSchool(data.school);
   }
@@ -55,6 +87,7 @@ export function AuthProvider({ children }) {
     }
     localStorage.removeItem('edunest_access');
     localStorage.removeItem('edunest_refresh');
+    persistSchool(null);
     setUser(null);
     setSchool(null);
   }

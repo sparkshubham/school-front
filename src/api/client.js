@@ -12,7 +12,7 @@ const api = axios.create({
 
 const GET_CACHE_TTL = 60_000;
 const GET_CACHE = new Map();
-const CACHE_PATHS = new Set(['/classes', '/sections', '/subjects', '/periods', '/meta', '/teachers']);
+const CACHE_PATHS = new Set(['/classes', '/sections', '/subjects', '/periods', '/meta']);
 
 function cacheKey(config) {
   const url = (config.url || '').split('?')[0];

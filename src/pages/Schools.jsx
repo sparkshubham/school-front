@@ -2,19 +2,29 @@ import { useEffect, useState } from 'react';
 import api from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { PageHeader, Modal, StatCard, Badge } from '../components/ui.jsx';
+import Pagination from '../components/Pagination.jsx';
 import { inr } from '../utils/format.js';
 import { useLang } from '../context/LanguageContext.jsx';
+import { PAGE_SIZE } from '../utils/session.js';
 
 export default function Schools() {
   const { applySession } = useAuth();
   const { t, locale } = useLang();
   const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [counts, setCounts] = useState({ total: 0, active: 0, trial: 0 });
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ plan: 'professional', status: 'trial' });
 
-  async function load() {
-    const { data } = await api.get('/schools');
+  async function load(nextPage = 1) {
+    const { data } = await api.get('/schools', { params: { page: nextPage, limit: PAGE_SIZE } });
     setItems(data.items || []);
+    setTotal(data.total || 0);
+    setPages(data.pages || 1);
+    setPage(data.page || nextPage);
+    setCounts(data.counts || { total: data.total || 0, active: 0, trial: 0 });
   }
   useEffect(() => {
     load();
@@ -50,9 +60,9 @@ export default function Schools() {
         }
       />
       <div className="grid sm:grid-cols-3 gap-4 mb-6">
-        <StatCard label={t('super.totalSchools')} value={items.length} />
-        <StatCard label={t('super.active')} value={items.filter((s) => s.status === 'active').length} tone="slate" />
-        <StatCard label={t('super.trial')} value={items.filter((s) => s.status === 'trial').length} tone="gold" />
+        <StatCard label={t('super.totalSchools')} value={counts.total || total} />
+        <StatCard label={t('super.active')} value={counts.active || 0} tone="slate" />
+        <StatCard label={t('super.trial')} value={counts.trial || 0} tone="gold" />
       </div>
       <div className="card table-wrap">
         <table className="data">
@@ -96,6 +106,7 @@ export default function Schools() {
             ))}
           </tbody>
         </table>
+        <Pagination page={page} pages={pages} total={total} onPage={load} />
       </div>
       {open && (
         <Modal title={t('schools.add')} onClose={() => setOpen(false)}>
