@@ -19,12 +19,12 @@ export default function Attendance() {
   const [tab, setTab] = useState('mark');
 
   useEffect(() => {
-    api.get('/classes').then((r) => {
-      const items = r.data.items || [];
+    api.get('/meta').then((r) => {
+      const items = r.data.classes || [];
       setClasses(items);
       if (items[0]) setClassId(items.find((c) => c.numeric === 10)?._id || items[0]._id);
+      setSections(r.data.sections || []);
     });
-    api.get('/sections').then((r) => setSections(r.data.items || []));
   }, []);
 
   async function loadSheet() {

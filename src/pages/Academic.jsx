@@ -3,22 +3,14 @@ import api from '../api/client.js';
 import { PageHeader } from '../components/ui.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
 
-function Block({ title, path, fields, label }) {
+function Block({ title, items, fields, label, path, onChanged }) {
   const { t } = useLang();
-  const [items, setItems] = useState([]);
   const [form, setForm] = useState({});
-  async function load() {
-    const { data } = await api.get(path);
-    setItems(data.items || []);
-  }
-  useEffect(() => {
-    load();
-  }, [path]);
   async function add(e) {
     e.preventDefault();
     await api.post(path, form);
     setForm({});
-    load();
+    onChanged();
   }
   return (
     <div className="card p-5">
@@ -44,7 +36,7 @@ function Block({ title, path, fields, label }) {
               className="text-rose-600"
               onClick={async () => {
                 await api.delete(`${path}/${i._id}`);
-                load();
+                onChanged();
               }}
             >
               {t('common.remove')}
@@ -62,17 +54,20 @@ export default function Academic() {
   const [subjects, setSubjects] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [sections, setSections] = useState([]);
+  const [sessions, setSessions] = useState([]);
   const [assign, setAssign] = useState({});
 
+  async function loadMeta() {
+    const { data } = await api.get('/meta');
+    setClasses(data.classes || []);
+    setSubjects(data.subjects || []);
+    setTeachers(data.teachers || []);
+    setSections(data.sections || []);
+    setSessions(data.sessions || []);
+  }
+
   useEffect(() => {
-    Promise.all([api.get('/classes'), api.get('/subjects'), api.get('/teachers'), api.get('/sections')]).then(
-      ([c, s, t, sec]) => {
-        setClasses(c.data.items || []);
-        setSubjects(s.data.items || []);
-        setTeachers(t.data.items || []);
-        setSections(sec.data.items || []);
-      }
-    );
+    loadMeta();
   }, []);
 
   async function assignSubject(e) {
@@ -89,6 +84,8 @@ export default function Academic() {
         <Block
           title={t('academic.sessions')}
           path="/sessions"
+          items={sessions}
+          onChanged={loadMeta}
           fields={[
             { name: 'name', label: '2026-27', required: true },
             { name: 'startDate', label: 'Start YYYY-MM-DD' },
@@ -99,6 +96,8 @@ export default function Academic() {
         <Block
           title={t('academic.classes')}
           path="/classes"
+          items={classes}
+          onChanged={loadMeta}
           fields={[
             { name: 'name', label: t('academic.className'), required: true },
             { name: 'numeric', label: t('academic.numeric') },
@@ -108,6 +107,8 @@ export default function Academic() {
         <Block
           title={t('academic.sections')}
           path="/sections"
+          items={sections}
+          onChanged={loadMeta}
           fields={[
             { name: 'classId', label: t('academic.classId'), required: true },
             { name: 'name', label: 'A / B / C', required: true },
@@ -117,6 +118,8 @@ export default function Academic() {
         <Block
           title={t('academic.subjects')}
           path="/subjects"
+          items={subjects}
+          onChanged={loadMeta}
           fields={[
             { name: 'name', label: t('academic.subject'), required: true },
             { name: 'code', label: t('academic.code') },

@@ -14,18 +14,24 @@ export default function ResourcePage({
   const { t } = useLang();
   const [items, setItems] = useState([]);
   const [q, setQ] = useState('');
+  const [qDebounced, setQDebounced] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({});
   const [editing, setEditing] = useState(null);
 
   async function load() {
-    const { data } = await api.get(path, { params: { q } });
+    const { data } = await api.get(path, { params: { q: qDebounced } });
     setItems(data.items || []);
   }
 
   useEffect(() => {
+    const t = setTimeout(() => setQDebounced(q), 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  useEffect(() => {
     load();
-  }, [path, q]);
+  }, [path, qDebounced]);
 
   function startCreate() {
     setEditing(null);

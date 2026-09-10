@@ -10,23 +10,31 @@ export default function Students() {
   const [classes, setClasses] = useState([]);
   const [sections, setSections] = useState([]);
   const [q, setQ] = useState('');
+  const [qDebounced, setQDebounced] = useState('');
   const [classId, setClassId] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ createLogin: true });
 
   async function load() {
-    const { data } = await api.get('/students', { params: { q, classId } });
+    const { data } = await api.get('/students', { params: { q: qDebounced, classId } });
     setItems(data.items || []);
   }
 
   useEffect(() => {
-    api.get('/classes').then((r) => setClasses(r.data.items || []));
-    api.get('/sections').then((r) => setSections(r.data.items || []));
+    const t = setTimeout(() => setQDebounced(q), 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  useEffect(() => {
+    api.get('/meta').then((r) => {
+      setClasses(r.data.classes || []);
+      setSections(r.data.sections || []);
+    });
   }, []);
 
   useEffect(() => {
     load();
-  }, [q, classId]);
+  }, [qDebounced, classId]);
 
   async function save(e) {
     e.preventDefault();

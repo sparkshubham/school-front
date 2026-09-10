@@ -13,13 +13,13 @@ export default function Timetable() {
   const [periods, setPeriods] = useState([]);
 
   useEffect(() => {
-    api.get('/classes').then((r) => {
-      const items = r.data.items || [];
+    api.get('/meta').then((r) => {
+      const items = r.data.classes || [];
       setClasses(items);
       const c10 = items.find((c) => c.numeric === 10) || items[0];
       if (c10) setClassId(c10._id);
+      setPeriods((r.data.periods || []).sort((a, b) => a.order - b.order));
     });
-    api.get('/periods').then((r) => setPeriods((r.data.items || []).sort((a, b) => a.order - b.order)));
   }, []);
 
   useEffect(() => {

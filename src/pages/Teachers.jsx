@@ -7,6 +7,7 @@ export default function Teachers() {
   const { t } = useLang();
   const [items, setItems] = useState([]);
   const [q, setQ] = useState('');
+  const [qDebounced, setQDebounced] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({});
   const [editing, setEditing] = useState(null);
@@ -14,13 +15,18 @@ export default function Teachers() {
   const [error, setError] = useState('');
 
   async function load() {
-    const { data } = await api.get('/teachers', { params: { q } });
+    const { data } = await api.get('/teachers', { params: { q: qDebounced } });
     setItems(data.items || []);
   }
 
   useEffect(() => {
-    load();
+    const t = setTimeout(() => setQDebounced(q), 300);
+    return () => clearTimeout(t);
   }, [q]);
+
+  useEffect(() => {
+    load();
+  }, [qDebounced]);
 
   function startCreate() {
     setEditing(null);

@@ -7,16 +7,54 @@ const apiBase =
 const api = axios.create({
   baseURL: apiBase,
   withCredentials: true,
+  timeout: 20000,
 });
+
+const GET_CACHE_TTL = 60_000;
+const GET_CACHE = new Map();
+const CACHE_PATHS = new Set(['/classes', '/sections', '/subjects', '/periods', '/meta', '/teachers']);
+
+function cacheKey(config) {
+  const url = (config.url || '').split('?')[0];
+  const params = config.params ? JSON.stringify(config.params) : '';
+  return `${url}?${params}`;
+}
+
+function isCacheableGet(config) {
+  const url = (config.url || '').split('?')[0];
+  return (config.method || 'get').toLowerCase() === 'get' && CACHE_PATHS.has(url);
+}
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('edunest_access');
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (isCacheableGet(config) && !config.params?.q) {
+    const hit = GET_CACHE.get(cacheKey(config));
+    if (hit && Date.now() - hit.at < GET_CACHE_TTL) {
+      config.adapter = async () => ({
+        data: hit.data,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+        request: {},
+      });
+    }
+  }
   return config;
 });
 
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    if (isCacheableGet(res.config) && !res.config.params?.q) {
+      GET_CACHE.set(cacheKey(res.config), { at: Date.now(), data: res.data });
+    }
+    const method = (res.config.method || '').toLowerCase();
+    if (['post', 'patch', 'put', 'delete'].includes(method)) {
+      GET_CACHE.clear();
+    }
+    return res;
+  },
   async (error) => {
     const original = error.config;
     if (error.response?.status === 401 && !original._retry && !original.url?.includes('/auth/')) {
