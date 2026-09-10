@@ -20,6 +20,7 @@ export function AuthProvider({ children }) {
       setSchool(data.school);
     } catch {
       localStorage.removeItem('edunest_access');
+      localStorage.removeItem('edunest_refresh');
       setUser(null);
     } finally {
       setLoading(false);
@@ -33,6 +34,7 @@ export function AuthProvider({ children }) {
   async function login(email, password) {
     const { data } = await api.post('/auth/login', { email, password });
     localStorage.setItem('edunest_access', data.accessToken);
+    if (data.refreshToken) localStorage.setItem('edunest_refresh', data.refreshToken);
     setUser(data.user);
     setSchool(data.school);
     return data.user;
@@ -40,6 +42,7 @@ export function AuthProvider({ children }) {
 
   function applySession(data) {
     localStorage.setItem('edunest_access', data.accessToken);
+    if (data.refreshToken) localStorage.setItem('edunest_refresh', data.refreshToken);
     setUser(data.user);
     setSchool(data.school);
   }
@@ -51,6 +54,7 @@ export function AuthProvider({ children }) {
       /* ignore */
     }
     localStorage.removeItem('edunest_access');
+    localStorage.removeItem('edunest_refresh');
     setUser(null);
     setSchool(null);
   }

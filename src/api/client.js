@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: import.meta.env.VITE_API_URL || '/api/v1',
   withCredentials: true,
 });
 
@@ -18,12 +18,15 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !original._retry && !original.url?.includes('/auth/')) {
       original._retry = true;
       try {
-        const { data } = await api.post('/auth/refresh');
+        const refreshToken = localStorage.getItem('edunest_refresh');
+        const { data } = await api.post('/auth/refresh', refreshToken ? { refreshToken } : {});
         localStorage.setItem('edunest_access', data.accessToken);
+        if (data.refreshToken) localStorage.setItem('edunest_refresh', data.refreshToken);
         original.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(original);
       } catch {
         localStorage.removeItem('edunest_access');
+        localStorage.removeItem('edunest_refresh');
       }
     }
     return Promise.reject(error);
