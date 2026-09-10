@@ -6,9 +6,6 @@ import LanguageSwitch from '../components/LanguageSwitch.jsx';
 
 const DEMOS = [
   { roleKey: 'login.demo.super', email: 'superadmin@edunest.io', password: 'Admin@123' },
-  { roleKey: 'login.demo.vbmAdmin', email: 'admin@vidhyabharti.school', password: 'Admin@123' },
-  { roleKey: 'login.demo.vp', email: 'rakesh.sharma@vidhyabharti.school', password: 'Teacher@123' },
-  { roleKey: 'login.demo.teacher', email: 'gaytri.soni@vidhyabharti.school', password: 'Teacher@123' },
   { roleKey: 'login.demo.greenwood', email: 'admin@greenwood.school', password: 'Admin@123' },
 ];
 
@@ -16,7 +13,7 @@ export default function Login() {
   const { login } = useAuth();
   const { t } = useLang();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('admin@vidhyabharti.school');
+  const [email, setEmail] = useState('admin@greenwood.school');
   const [password, setPassword] = useState('Admin@123');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
