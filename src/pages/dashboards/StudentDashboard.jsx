@@ -7,9 +7,18 @@ import { useLang } from '../../context/LanguageContext.jsx';
 export default function StudentDashboard() {
   const { t, locale } = useLang();
   const [data, setData] = useState(null);
+  const [error, setError] = useState('');
   useEffect(() => {
-    api.get('/dashboard/student').then((r) => setData(r.data));
-  }, []);
+    let live = true;
+    api
+      .get('/dashboard/student')
+      .then((r) => live && setData(r.data))
+      .catch(() => live && setError(t('common.loadError')));
+    return () => {
+      live = false;
+    };
+  }, [t]);
+  if (error) return <p className="text-rose-600">{error}</p>;
   if (!data) return <p className="text-slate-500">{t('common.loading')}</p>;
   const s = data.student;
   return (

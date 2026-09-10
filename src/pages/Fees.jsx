@@ -19,16 +19,20 @@ export default function Fees() {
   const [status, setStatus] = useState('');
 
   async function load(nextPage = 1) {
-    const invReq = api.get('/fees/invoices', { params: { status, page: nextPage, limit: PAGE_SIZE } });
-    const [inv, rep] = await Promise.all([
-      invReq,
-      nextPage === 1 ? api.get('/fees/reports') : Promise.resolve(null),
-    ]);
-    setInvoices(inv.data.items || []);
-    setTotal(inv.data.total || 0);
-    setPages(inv.data.pages || 1);
-    setPage(inv.data.page || nextPage);
-    if (rep) setReport(rep.data);
+    try {
+      const invReq = api.get('/fees/invoices', { params: { status, page: nextPage, limit: PAGE_SIZE } });
+      const [inv, rep] = await Promise.all([
+        invReq,
+        nextPage === 1 ? api.get('/fees/reports') : Promise.resolve(null),
+      ]);
+      setInvoices(inv.data.items || []);
+      setTotal(inv.data.total || 0);
+      setPages(inv.data.pages || 1);
+      setPage(inv.data.page || nextPage);
+      if (rep) setReport(rep.data);
+    } catch {
+      setInvoices([]);
+    }
   }
   useEffect(() => {
     load(1);

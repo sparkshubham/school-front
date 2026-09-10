@@ -17,18 +17,26 @@ export default function Transport() {
   const [rTotal, setRTotal] = useState(0);
 
   async function loadVehicles(nextPage = 1) {
-    const { data } = await api.get('/vehicles', { params: { page: nextPage, limit: PAGE_SIZE } });
-    setVehicles(data.items || []);
-    setVTotal(data.total || 0);
-    setVPages(data.pages || 1);
-    setVPage(data.page || nextPage);
+    try {
+      const { data } = await api.get('/vehicles', { params: { page: nextPage, limit: PAGE_SIZE } });
+      setVehicles(data.items || []);
+      setVTotal(data.total || 0);
+      setVPages(data.pages || 1);
+      setVPage(data.page || nextPage);
+    } catch {
+      setVehicles([]);
+    }
   }
   async function loadRoutes(nextPage = 1) {
-    const { data } = await api.get('/routes', { params: { page: nextPage, limit: PAGE_SIZE } });
-    setRoutes(data.items || []);
-    setRTotal(data.total || 0);
-    setRPages(data.pages || 1);
-    setRPage(data.page || nextPage);
+    try {
+      const { data } = await api.get('/routes', { params: { page: nextPage, limit: PAGE_SIZE } });
+      setRoutes(data.items || []);
+      setRTotal(data.total || 0);
+      setRPages(data.pages || 1);
+      setRPage(data.page || nextPage);
+    } catch {
+      setRoutes([]);
+    }
   }
 
   useEffect(() => {

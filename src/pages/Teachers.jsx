@@ -20,11 +20,15 @@ export default function Teachers() {
   const [error, setError] = useState('');
 
   async function load(nextPage = page) {
-    const { data } = await api.get('/teachers', { params: { q: qDebounced, page: nextPage, limit: PAGE_SIZE } });
-    setItems(data.items || []);
-    setTotal(data.total || 0);
-    setPages(data.pages || 1);
-    setPage(data.page || nextPage);
+    try {
+      const { data } = await api.get('/teachers', { params: { q: qDebounced, page: nextPage, limit: PAGE_SIZE } });
+      setItems(data.items || []);
+      setTotal(data.total || 0);
+      setPages(data.pages || 1);
+      setPage(data.page || nextPage);
+    } catch {
+      setItems([]);
+    }
   }
 
   useEffect(() => {

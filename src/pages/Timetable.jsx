@@ -13,18 +13,24 @@ export default function Timetable() {
   const [periods, setPeriods] = useState([]);
 
   useEffect(() => {
-    api.get('/meta', { params: { keys: 'classes,periods' } }).then((r) => {
-      const items = r.data.classes || [];
-      setClasses(items);
-      const c10 = items.find((c) => c.numeric === 10) || items[0];
-      if (c10) setClassId(c10._id);
-      setPeriods((r.data.periods || []).sort((a, b) => a.order - b.order));
-    });
+    api
+      .get('/meta', { params: { keys: 'classes,periods' } })
+      .then((r) => {
+        const items = r.data.classes || [];
+        setClasses(items);
+        const c10 = items.find((c) => c.numeric === 10) || items[0];
+        if (c10) setClassId(c10._id);
+        setPeriods((r.data.periods || []).sort((a, b) => a.order - b.order));
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
     if (!classId) return;
-    api.get('/timetable', { params: { classId } }).then((r) => setSlots(r.data.items || []));
+    api
+      .get('/timetable', { params: { classId } })
+      .then((r) => setSlots(r.data.items || []))
+      .catch(() => setSlots([]));
   }, [classId]);
 
   function cell(day, periodId) {

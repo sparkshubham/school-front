@@ -10,10 +10,13 @@ export default function SchoolSetup() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    api.get('/school/profile').then(({ data }) => {
-      setSchool(data.school);
-      setBranches(data.branches || []);
-    });
+    api
+      .get('/school/profile')
+      .then(({ data }) => {
+        setSchool(data.school);
+        setBranches(data.branches || []);
+      })
+      .catch(() => {});
   }, []);
 
   async function save(e) {

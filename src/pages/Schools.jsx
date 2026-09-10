@@ -19,12 +19,16 @@ export default function Schools() {
   const [form, setForm] = useState({ plan: 'professional', status: 'trial' });
 
   async function load(nextPage = 1) {
-    const { data } = await api.get('/schools', { params: { page: nextPage, limit: PAGE_SIZE } });
-    setItems(data.items || []);
-    setTotal(data.total || 0);
-    setPages(data.pages || 1);
-    setPage(data.page || nextPage);
-    setCounts(data.counts || { total: data.total || 0, active: 0, trial: 0 });
+    try {
+      const { data } = await api.get('/schools', { params: { page: nextPage, limit: PAGE_SIZE } });
+      setItems(data.items || []);
+      setTotal(data.total || 0);
+      setPages(data.pages || 1);
+      setPage(data.page || nextPage);
+      setCounts(data.counts || { total: data.total || 0, active: 0, trial: 0 });
+    } catch {
+      setItems([]);
+    }
   }
   useEffect(() => {
     load();

@@ -7,9 +7,18 @@ import { useLang } from '../../context/LanguageContext.jsx';
 export default function ParentDashboard() {
   const { t, locale } = useLang();
   const [data, setData] = useState(null);
+  const [error, setError] = useState('');
   useEffect(() => {
-    api.get('/dashboard/parent').then((r) => setData(r.data));
-  }, []);
+    let live = true;
+    api
+      .get('/dashboard/parent')
+      .then((r) => live && setData(r.data))
+      .catch(() => live && setError(t('common.loadError')));
+    return () => {
+      live = false;
+    };
+  }, [t]);
+  if (error) return <p className="text-rose-600">{error}</p>;
   if (!data) return <p className="text-slate-500">{t('common.loading')}</p>;
   const child = data.parent?.students?.[0];
   const pending = data.invoices?.reduce((s, i) => s + (i.due || 0), 0) || 0;

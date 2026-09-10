@@ -25,11 +25,15 @@ export default function ResourcePage({
   const [editing, setEditing] = useState(null);
 
   async function load(nextPage = page) {
-    const { data } = await api.get(path, { params: { q: qDebounced, page: nextPage, limit: PAGE_SIZE } });
-    setItems(data.items || []);
-    setTotal(data.total || 0);
-    setPages(data.pages || 1);
-    setPage(data.page || nextPage);
+    try {
+      const { data } = await api.get(path, { params: { q: qDebounced, page: nextPage, limit: PAGE_SIZE } });
+      setItems(data.items || []);
+      setTotal(data.total || 0);
+      setPages(data.pages || 1);
+      setPage(data.page || nextPage);
+    } catch {
+      setItems([]);
+    }
   }
 
   useEffect(() => {

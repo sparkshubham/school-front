@@ -46,11 +46,15 @@ function TeacherLeave({ form, setForm }) {
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
   async function load(nextPage = 1) {
-    const { data } = await api.get('/leaves', { params: { page: nextPage, limit: 20 } });
-    setItems(data.items || []);
-    setTotal(data.total || 0);
-    setPages(data.pages || 1);
-    setPage(data.page || nextPage);
+    try {
+      const { data } = await api.get('/leaves', { params: { page: nextPage, limit: 20 } });
+      setItems(data.items || []);
+      setTotal(data.total || 0);
+      setPages(data.pages || 1);
+      setPage(data.page || nextPage);
+    } catch {
+      setItems([]);
+    }
   }
   useEffect(() => {
     load(1);

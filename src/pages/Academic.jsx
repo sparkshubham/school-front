@@ -58,12 +58,16 @@ export default function Academic() {
   const [assign, setAssign] = useState({});
 
   async function loadMeta() {
-    const { data } = await api.get('/meta', { params: { keys: 'classes,sections,subjects,sessions,teachers' } });
-    setClasses(data.classes || []);
-    setSubjects(data.subjects || []);
-    setTeachers(data.teachers || []);
-    setSections(data.sections || []);
-    setSessions(data.sessions || []);
+    try {
+      const { data } = await api.get('/meta', { params: { keys: 'classes,sections,subjects,sessions,teachers' } });
+      setClasses(data.classes || []);
+      setSubjects(data.subjects || []);
+      setTeachers(data.teachers || []);
+      setSections(data.sections || []);
+      setSessions(data.sessions || []);
+    } catch {
+      /* keep last good data */
+    }
   }
 
   useEffect(() => {

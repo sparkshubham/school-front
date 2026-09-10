@@ -10,10 +10,20 @@ export default function SchoolDashboard() {
   const { user, school } = useAuth();
   const { t, locale } = useLang();
   const [data, setData] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    api.get('/dashboard/school').then((r) => setData(r.data));
-  }, []);
+    let live = true;
+    api
+      .get('/dashboard/school')
+      .then((r) => live && setData(r.data))
+      .catch(() => live && setError(t('common.loadError')));
+    return () => {
+      live = false;
+    };
+  }, [t]);
+
+  if (error) return <p className="text-rose-600">{error}</p>;
 
   if (!data) return <p className="text-slate-500">{t('dash.loadingCampus')}</p>;
 

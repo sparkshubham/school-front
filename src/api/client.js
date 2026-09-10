@@ -7,22 +7,27 @@ const apiBase =
 const api = axios.create({
   baseURL: apiBase,
   withCredentials: true,
-  timeout: 20000,
+  timeout: 45000,
 });
 
 const GET_CACHE_TTL = 60_000;
 const GET_CACHE = new Map();
+const INFLIGHT = new Map();
 const CACHE_PATHS = new Set(['/classes', '/sections', '/subjects', '/periods', '/meta']);
 
 function cacheKey(config) {
   const url = (config.url || '').split('?')[0];
   const params = config.params ? JSON.stringify(config.params) : '';
-  return `${url}?${params}`;
+  return `${(config.method || 'get').toLowerCase()}:${url}?${params}`;
 }
 
 function isCacheableGet(config) {
   const url = (config.url || '').split('?')[0];
   return (config.method || 'get').toLowerCase() === 'get' && CACHE_PATHS.has(url);
+}
+
+function isGet(config) {
+  return (config.method || 'get').toLowerCase() === 'get';
 }
 
 api.interceptors.request.use((config) => {
@@ -39,6 +44,21 @@ api.interceptors.request.use((config) => {
         config,
         request: {},
       });
+      return config;
+    }
+  }
+  if (isGet(config)) {
+    const key = cacheKey(config);
+    const pending = INFLIGHT.get(key);
+    if (pending) {
+      config.adapter = () => pending;
+    } else {
+      const adapter = config.adapter || axios.getAdapter(axios.defaults.adapter);
+      config.adapter = (cfg) => {
+        const req = Promise.resolve(adapter(cfg)).finally(() => INFLIGHT.delete(key));
+        INFLIGHT.set(key, req);
+        return req;
+      };
     }
   }
   return config;
@@ -57,7 +77,12 @@ api.interceptors.response.use(
   },
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry && !original.url?.includes('/auth/')) {
+    if (
+      original &&
+      error.response?.status === 401 &&
+      !original._retry &&
+      !original.url?.includes('/auth/')
+    ) {
       original._retry = true;
       try {
         const refreshToken = localStorage.getItem('edunest_refresh');

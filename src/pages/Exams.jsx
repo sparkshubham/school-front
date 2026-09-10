@@ -22,11 +22,15 @@ export default function Exams() {
   const [card, setCard] = useState(null);
 
   async function load(nextPage = 1) {
-    const { data } = await api.get('/exams', { params: { page: nextPage, limit: PAGE_SIZE } });
-    setExams(data.items || []);
-    setTotal(data.total || 0);
-    setPages(data.pages || 1);
-    setPage(data.page || nextPage);
+    try {
+      const { data } = await api.get('/exams', { params: { page: nextPage, limit: PAGE_SIZE } });
+      setExams(data.items || []);
+      setTotal(data.total || 0);
+      setPages(data.pages || 1);
+      setPage(data.page || nextPage);
+    } catch {
+      setExams([]);
+    }
   }
   useEffect(() => {
     load();

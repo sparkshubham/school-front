@@ -21,13 +21,17 @@ export default function Students() {
   const [form, setForm] = useState({ createLogin: true });
 
   async function load(nextPage = page) {
-    const { data } = await api.get('/students', {
-      params: { q: qDebounced, classId, page: nextPage, limit: PAGE_SIZE },
-    });
-    setItems(data.items || []);
-    setTotal(data.total || 0);
-    setPages(data.pages || 1);
-    setPage(data.page || nextPage);
+    try {
+      const { data } = await api.get('/students', {
+        params: { q: qDebounced, classId, page: nextPage, limit: PAGE_SIZE },
+      });
+      setItems(data.items || []);
+      setTotal(data.total || 0);
+      setPages(data.pages || 1);
+      setPage(data.page || nextPage);
+    } catch {
+      setItems([]);
+    }
   }
 
   useEffect(() => {
@@ -36,10 +40,13 @@ export default function Students() {
   }, [q]);
 
   useEffect(() => {
-    api.get('/meta', { params: { keys: 'classes,sections' } }).then((r) => {
-      setClasses(r.data.classes || []);
-      setSections(r.data.sections || []);
-    });
+    api
+      .get('/meta', { params: { keys: 'classes,sections' } })
+      .then((r) => {
+        setClasses(r.data.classes || []);
+        setSections(r.data.sections || []);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {

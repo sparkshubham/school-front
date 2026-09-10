@@ -58,6 +58,10 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
+    if (boot.user) {
+      setLoading(false);
+      return;
+    }
     loadMe();
   }, []);
 

@@ -16,8 +16,11 @@ export default function Reports() {
     setAttnPage(data.page || nextPage);
   }
   useEffect(() => {
-    api.get('/fees/reports').then((r) => setFees(r.data));
-    loadAttn(1);
+    api
+      .get('/fees/reports')
+      .then((r) => setFees(r.data))
+      .catch(() => {});
+    loadAttn(1).catch(() => {});
   }, []);
   const low = attn?.rows?.filter((r) => r.low) || attn?.rows || [];
   return (
