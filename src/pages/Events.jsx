@@ -17,7 +17,7 @@ export default function Events() {
       fields={[
         { name: 'title', label: t('field.title'), required: true },
         { name: 'type', label: t('field.type') },
-        { name: 'startDate', label: t('field.start'), type: 'date' },
+        { name: 'startDate', label: t('field.start'), type: 'date', required: true },
         { name: 'endDate', label: t('field.end'), type: 'date' },
         { name: 'description', label: t('field.description'), type: 'textarea' },
       ]}

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import api from '../api/client.js';
-import { PageHeader, Modal, Empty, Badge, Busy } from '../components/ui.jsx';
+import { PageHeader, Modal, Empty, Badge, Busy, FieldError, FormBanner } from '../components/ui.jsx';
 import Pagination from '../components/Pagination.jsx';
 import { fullName } from '../utils/format.js';
 import { useLang } from '../context/LanguageContext.jsx';
 import { PAGE_SIZE } from '../utils/session.js';
+import { apiErrorMessage, inputClass, requiredErrors } from '../utils/form.js';
 
 export default function Students() {
   const { t } = useLang();
@@ -19,6 +20,8 @@ export default function Students() {
   const [classId, setClassId] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ createLogin: true });
+  const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(true);
   const metaLoaded = useRef(false);
 
@@ -65,12 +68,38 @@ export default function Students() {
     };
   }, [qDebounced, classId]);
 
+  function openCreate() {
+    setForm({ createLogin: true });
+    setErrors({});
+    setFormError('');
+    setOpen(true);
+  }
+
   async function save(e) {
     e.preventDefault();
-    await api.post('/students', { ...form, createLogin: true });
-    setOpen(false);
-    setForm({ createLogin: true });
-    load(1);
+    const nextErrors = requiredErrors(
+      form,
+      [
+        { name: 'firstName', required: true },
+        { name: 'admissionNo', required: true },
+        { name: 'classId', required: true },
+      ],
+      t('common.required')
+    );
+    setErrors(nextErrors);
+    setFormError('');
+    if (Object.keys(nextErrors).length) {
+      setFormError(t('common.fixFields'));
+      return;
+    }
+    try {
+      await api.post('/students', { ...form, createLogin: true });
+      setOpen(false);
+      setForm({ createLogin: true });
+      load(1);
+    } catch (err) {
+      setFormError(apiErrorMessage(err, t('common.saveFailed')));
+    }
   }
 
   return (
@@ -79,7 +108,7 @@ export default function Students() {
         title={t('students.title')}
         subtitle={t('students.subtitle')}
         actions={
-          <button className="btn-primary" onClick={() => setOpen(true)}>
+          <button className="btn-primary" onClick={openCreate}>
             {t('students.add')}
           </button>
         }
@@ -138,20 +167,31 @@ export default function Students() {
       </Busy>
       {open && (
         <Modal title={t('students.new')} onClose={() => setOpen(false)}>
-          <form onSubmit={save} className="grid grid-cols-2 gap-3">
+          <form onSubmit={save} className="grid grid-cols-2 gap-3" noValidate>
+            <div className="col-span-2">
+              <FormBanner>{formError}</FormBanner>
+            </div>
             {[
-              ['firstName', 'field.firstName'],
-              ['lastName', 'field.lastName'],
-              ['admissionNo', 'field.admissionNo'],
-              ['rollNo', 'field.rollNo'],
-              ['email', 'field.studentEmail'],
-              ['fatherName', 'field.fatherName'],
-              ['parentName', 'field.parentName'],
-              ['parentEmail', 'field.parentEmail'],
-            ].map(([name, key]) => (
+              ['firstName', 'field.firstName', true],
+              ['lastName', 'field.lastName', false],
+              ['admissionNo', 'field.admissionNo', true],
+              ['rollNo', 'field.rollNo', false],
+              ['email', 'field.studentEmail', false],
+              ['fatherName', 'field.fatherName', false],
+              ['parentName', 'field.parentName', false],
+              ['parentEmail', 'field.parentEmail', false],
+            ].map(([name, key, required]) => (
               <div key={name} className="col-span-2 sm:col-span-1">
-                <label className="label">{t(key)}</label>
-                <input className="input" required={['firstName', 'admissionNo'].includes(name)} value={form[name] || ''} onChange={(e) => setForm({ ...form, [name]: e.target.value })} />
+                <label className="label">
+                  {t(key)}
+                  {required ? ' *' : ''}
+                </label>
+                <input
+                  className={inputClass(errors[name])}
+                  value={form[name] || ''}
+                  onChange={(e) => setForm({ ...form, [name]: e.target.value })}
+                />
+                <FieldError>{errors[name]}</FieldError>
               </div>
             ))}
             <div>
@@ -167,8 +207,12 @@ export default function Students() {
               <input className="input" type="date" value={form.admissionDate || ''} onChange={(e) => setForm({ ...form, admissionDate: e.target.value })} />
             </div>
             <div>
-              <label className="label">{t('field.class')}</label>
-              <select className="input" value={form.classId || ''} onChange={(e) => setForm({ ...form, classId: e.target.value })}>
+              <label className="label">{t('field.class')} *</label>
+              <select
+                className={inputClass(errors.classId)}
+                value={form.classId || ''}
+                onChange={(e) => setForm({ ...form, classId: e.target.value })}
+              >
                 <option value="">{t('common.select')}</option>
                 {classes.map((c) => (
                   <option key={c._id} value={c._id}>
@@ -176,6 +220,7 @@ export default function Students() {
                   </option>
                 ))}
               </select>
+              <FieldError>{errors.classId}</FieldError>
             </div>
             <div>
               <label className="label">{t('field.section')}</label>

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
-import { PageHeader, Modal, StatCard, Badge, Busy } from '../components/ui.jsx';
+import { PageHeader, Modal, StatCard, Badge, Busy, FieldError, FormBanner } from '../components/ui.jsx';
 import Pagination from '../components/Pagination.jsx';
 import { inr } from '../utils/format.js';
 import { useLang } from '../context/LanguageContext.jsx';
 import { PAGE_SIZE } from '../utils/session.js';
+import { apiErrorMessage, inputClass, requiredErrors } from '../utils/form.js';
 
 export default function Schools() {
   const { applySession } = useAuth();
@@ -17,6 +18,8 @@ export default function Schools() {
   const [counts, setCounts] = useState({ total: 0, active: 0, trial: 0 });
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ plan: 'professional', status: 'trial' });
+  const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(true);
 
   async function load(nextPage = 1) {
@@ -40,9 +43,28 @@ export default function Schools() {
 
   async function create(e) {
     e.preventDefault();
-    await api.post('/schools', form);
-    setOpen(false);
-    load();
+    const nextErrors = requiredErrors(
+      form,
+      [
+        { name: 'name', required: true },
+        { name: 'adminEmail', required: true },
+        { name: 'adminPassword', required: true },
+      ],
+      t('common.required')
+    );
+    setErrors(nextErrors);
+    setFormError('');
+    if (Object.keys(nextErrors).length) {
+      setFormError(t('common.fixFields'));
+      return;
+    }
+    try {
+      await api.post('/schools', form);
+      setOpen(false);
+      load();
+    } catch (err) {
+      setFormError(apiErrorMessage(err, t('common.saveFailed')));
+    }
   }
 
   async function setStatus(id, status) {
@@ -62,7 +84,7 @@ export default function Schools() {
         title={t('schools.title')}
         subtitle={t('schools.subtitle')}
         actions={
-          <button className="btn-primary" onClick={() => setOpen(true)}>
+          <button className="btn-primary" onClick={() => { setForm({ plan: 'professional', status: 'trial' }); setErrors({}); setFormError(''); setOpen(true); }}>
             {t('schools.add')}
           </button>
         }
@@ -118,24 +140,28 @@ export default function Schools() {
       </Busy>
       {open && (
         <Modal title={t('schools.add')} onClose={() => setOpen(false)}>
-          <form onSubmit={create} className="space-y-3">
+          <form onSubmit={create} className="space-y-3" noValidate>
+            <FormBanner>{formError}</FormBanner>
             {[
-              ['name', 'setup.name'],
-              ['adminName', 'schools.adminName'],
-              ['adminEmail', 'schools.adminEmail'],
-              ['adminPassword', 'schools.adminPassword'],
-              ['city', 'setup.city'],
-              ['phone', 'setup.phone'],
-            ].map(([name, key]) => (
+              ['name', 'setup.name', true],
+              ['adminName', 'schools.adminName', false],
+              ['adminEmail', 'schools.adminEmail', true],
+              ['adminPassword', 'schools.adminPassword', true],
+              ['city', 'setup.city', false],
+              ['phone', 'setup.phone', false],
+            ].map(([name, key, required]) => (
               <div key={name}>
-                <label className="label">{t(key)}</label>
+                <label className="label">
+                  {t(key)}
+                  {required ? ' *' : ''}
+                </label>
                 <input
-                  className="input"
+                  className={inputClass(errors[name])}
                   type={name.includes('Password') ? 'password' : 'text'}
-                  required={['name', 'adminEmail', 'adminPassword'].includes(name)}
                   value={form[name] || ''}
                   onChange={(e) => setForm({ ...form, [name]: e.target.value })}
                 />
+                <FieldError>{errors[name]}</FieldError>
               </div>
             ))}
             <label className="label">{t('schools.plan')}</label>

@@ -17,7 +17,7 @@ export default function Parents() {
       ]}
       fields={[
         { name: 'name', label: t('field.name'), required: true },
-        { name: 'phone', label: t('field.phone') },
+        { name: 'phone', label: t('field.phone'), required: true },
         { name: 'email', label: t('field.email') },
         { name: 'occupation', label: t('field.occupation') },
         { name: 'relation', label: t('field.relation') },

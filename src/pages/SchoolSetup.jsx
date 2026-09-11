@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
-import { PageHeader, PageSpinner } from '../components/ui.jsx';
+import { PageHeader, PageSpinner, FieldError, FormBanner } from '../components/ui.jsx';
 import Pagination from '../components/Pagination.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
 import { PAGE_SIZE } from '../utils/session.js';
+import { apiErrorMessage, inputClass, isBlank } from '../utils/form.js';
 
 export default function SchoolSetup() {
   const { t } = useLang();
@@ -11,6 +12,8 @@ export default function SchoolSetup() {
   const [branches, setBranches] = useState([]);
   const [saved, setSaved] = useState(false);
   const [branchPage, setBranchPage] = useState(1);
+  const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     api
@@ -24,10 +27,21 @@ export default function SchoolSetup() {
 
   async function save(e) {
     e.preventDefault();
-    const { data } = await api.patch('/school/profile', school);
-    setSchool(data);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    if (isBlank(school?.name)) {
+      setErrors({ name: t('common.required') });
+      setFormError(t('common.fixFields'));
+      return;
+    }
+    setErrors({});
+    setFormError('');
+    try {
+      const { data } = await api.patch('/school/profile', school);
+      setSchool(data);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setFormError(apiErrorMessage(err, t('common.saveFailed')));
+    }
   }
 
   const fields = [
@@ -52,11 +66,22 @@ export default function SchoolSetup() {
         <PageSpinner />
       ) : (
         <>
-          <form onSubmit={save} className="card p-6 grid md:grid-cols-2 gap-4">
+          <form onSubmit={save} className="card p-6 grid md:grid-cols-2 gap-4" noValidate>
+            <div className="md:col-span-2">
+              <FormBanner>{formError}</FormBanner>
+            </div>
             {fields.map(([name, key]) => (
               <div key={name}>
-                <label className="label">{t(key)}</label>
-                <input className="input" value={school[name] || ''} onChange={(e) => setSchool({ ...school, [name]: e.target.value })} />
+                <label className="label">
+                  {t(key)}
+                  {name === 'name' ? ' *' : ''}
+                </label>
+                <input
+                  className={inputClass(errors[name])}
+                  value={school[name] || ''}
+                  onChange={(e) => setSchool({ ...school, [name]: e.target.value })}
+                />
+                <FieldError>{errors[name]}</FieldError>
               </div>
             ))}
             <div className="md:col-span-2">

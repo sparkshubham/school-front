@@ -17,7 +17,7 @@ export default function Complaints() {
       fields={[
         { name: 'title', label: t('field.title'), required: true },
         { name: 'category', label: t('field.category') },
-        { name: 'body', label: t('field.details'), type: 'textarea' },
+        { name: 'body', label: t('field.details'), type: 'textarea', required: true },
         {
           name: 'status',
           label: t('field.status'),

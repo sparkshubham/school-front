@@ -29,5 +29,5 @@ export function apiErrorMessage(err, fallback = 'Could not save') {
 }
 
 export function inputClass(hasError) {
-  return hasError ? 'input border-rose-400 focus:border-rose-500 focus:ring-rose-100' : 'input';
+  return hasError ? 'input input-error' : 'input';
 }

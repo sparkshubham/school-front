@@ -24,7 +24,7 @@ export default function Admissions() {
       fields={[
         { name: 'studentName', label: t('field.studentName'), required: true },
         { name: 'parentName', label: t('field.parentName') },
-        { name: 'phone', label: t('field.phone') },
+        { name: 'phone', label: t('field.phone'), required: true },
         { name: 'classApplying', label: t('field.classApplying') },
         { name: 'previousSchool', label: t('field.previousSchool') },
         { name: 'source', label: t('field.source') },

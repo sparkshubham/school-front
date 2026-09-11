@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
-import { PageHeader, Modal, Empty, Busy } from '../components/ui.jsx';
+import { PageHeader, Modal, Empty, Busy, FieldError, FormBanner } from '../components/ui.jsx';
 import Pagination from '../components/Pagination.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
 import { PAGE_SIZE } from '../utils/session.js';
+import { apiErrorMessage, inputClass, requiredErrors } from '../utils/form.js';
 
 export default function Teachers() {
   const { t } = useLang();
@@ -18,6 +19,7 @@ export default function Teachers() {
   const [editing, setEditing] = useState(null);
   const [creds, setCreds] = useState(null);
   const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
 
   async function load(nextPage = page) {
@@ -48,12 +50,14 @@ export default function Teachers() {
     setEditing(null);
     setForm({ password: 'Teacher@123' });
     setError('');
+    setErrors({});
     setOpen(true);
   }
 
   function startEdit(row) {
     setEditing(row);
     setError('');
+    setErrors({});
     setForm({
       employeeId: row.employeeId || '',
       name: row.name || '',
@@ -69,7 +73,21 @@ export default function Teachers() {
 
   async function save(e) {
     e.preventDefault();
+    const nextErrors = requiredErrors(
+      form,
+      [
+        { name: 'employeeId', required: true },
+        { name: 'name', required: true },
+        { name: 'email', required: !editing },
+      ],
+      t('common.required')
+    );
+    setErrors(nextErrors);
     setError('');
+    if (Object.keys(nextErrors).length) {
+      setError(t('common.fixFields'));
+      return;
+    }
     try {
       if (editing) {
         await api.patch(`/teachers/${editing._id}`, form);
@@ -87,7 +105,7 @@ export default function Teachers() {
       }
       load();
     } catch (err) {
-      setError(err.response?.data?.message || t('teachers.saveFail'));
+      setError(apiErrorMessage(err, t('teachers.saveFail')));
     }
   }
 
@@ -180,8 +198,8 @@ export default function Teachers() {
 
       {open && (
         <Modal title={editing ? t('teachers.edit') : t('teachers.add')} onClose={() => setOpen(false)}>
-          <form onSubmit={save} className="space-y-3">
-            {error && <div className="rounded-xl bg-rose-50 text-rose-700 px-3 py-2 text-sm">{error}</div>}
+          <form onSubmit={save} className="space-y-3" noValidate>
+            <FormBanner>{error}</FormBanner>
             {[
               ['employeeId', 'field.employeeId', true],
               ['name', 'field.name', true],
@@ -193,14 +211,17 @@ export default function Teachers() {
               ['salary', 'field.salary', false],
             ].map(([name, key, required]) => (
               <div key={name}>
-                <label className="label">{t(key)}</label>
+                <label className="label">
+                  {t(key)}
+                  {required ? ' *' : ''}
+                </label>
                 <input
-                  className="input"
+                  className={inputClass(errors[name])}
                   type={name === 'salary' ? 'number' : name === 'email' ? 'email' : 'text'}
-                  required={required}
                   value={form[name] ?? ''}
                   onChange={(e) => setForm({ ...form, [name]: e.target.value })}
                 />
+                <FieldError>{errors[name]}</FieldError>
               </div>
             ))}
             {!editing && (

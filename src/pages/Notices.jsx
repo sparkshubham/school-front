@@ -21,7 +21,7 @@ export default function Notices() {
           type: 'select',
           options: ['all', 'students', 'teachers', 'parents', 'class', 'staff'].map((v) => ({ value: v, label: t(`audience.${v}`) })),
         },
-        { name: 'body', label: t('field.body'), type: 'textarea' },
+        { name: 'body', label: t('field.body'), type: 'textarea', required: true },
       ]}
     />
   );

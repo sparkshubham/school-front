@@ -167,7 +167,10 @@ export default function ResourcePage({
                   <select
                     className={inputClass(errors[f.name])}
                     value={form[f.name] || ''}
-                    onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+                    onChange={(e) => {
+                      setForm({ ...form, [f.name]: e.target.value });
+                      if (errors[f.name]) setErrors({ ...errors, [f.name]: undefined });
+                    }}
                   >
                     <option value="">{t('common.select')}</option>
                     {(f.options || []).map((o) => (
@@ -181,14 +184,20 @@ export default function ResourcePage({
                     className={inputClass(errors[f.name])}
                     rows={4}
                     value={form[f.name] || ''}
-                    onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+                    onChange={(e) => {
+                      setForm({ ...form, [f.name]: e.target.value });
+                      if (errors[f.name]) setErrors({ ...errors, [f.name]: undefined });
+                    }}
                   />
                 ) : (
                   <input
                     className={inputClass(errors[f.name])}
                     type={f.type || 'text'}
                     value={form[f.name] ?? ''}
-                    onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+                    onChange={(e) => {
+                      setForm({ ...form, [f.name]: e.target.value });
+                      if (errors[f.name]) setErrors({ ...errors, [f.name]: undefined });
+                    }}
                   />
                 )}
                 <FieldError>{errors[f.name]}</FieldError>

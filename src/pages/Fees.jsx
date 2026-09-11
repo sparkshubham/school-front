@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
-import { PageHeader, Modal, StatCard, Badge, Busy } from '../components/ui.jsx';
+import { PageHeader, Modal, StatCard, Badge, Busy, FieldError, FormBanner } from '../components/ui.jsx';
 import Pagination from '../components/Pagination.jsx';
 import { fullName, inr } from '../utils/format.js';
 import { useLang } from '../context/LanguageContext.jsx';
 import { PAGE_SIZE } from '../utils/session.js';
+import { apiErrorMessage, inputClass, isBlank } from '../utils/form.js';
 
 export default function Fees() {
   const { t, locale } = useLang();
@@ -17,6 +18,8 @@ export default function Fees() {
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState('upi');
   const [status, setStatus] = useState('');
+  const [amountError, setAmountError] = useState('');
+  const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(true);
 
   async function load(nextPage = 1) {
@@ -43,10 +46,21 @@ export default function Fees() {
 
   async function collect(e) {
     e.preventDefault();
-    await api.post('/fees/collect', { invoiceId: pay._id, amount: Number(amount), method });
-    setPay(null);
-    setAmount('');
-    load();
+    if (isBlank(amount) || Number(amount) <= 0) {
+      setAmountError(t('common.required'));
+      setFormError(t('common.fixFields'));
+      return;
+    }
+    setAmountError('');
+    setFormError('');
+    try {
+      await api.post('/fees/collect', { invoiceId: pay._id, amount: Number(amount), method });
+      setPay(null);
+      setAmount('');
+      load();
+    } catch (err) {
+      setFormError(apiErrorMessage(err, t('common.saveFailed')));
+    }
   }
 
   return (
@@ -97,6 +111,8 @@ export default function Fees() {
                       onClick={() => {
                         setPay(i);
                         setAmount(String(i.due));
+                        setAmountError('');
+                        setFormError('');
                       }}
                     >
                       {t('fees.collect')}
@@ -111,9 +127,20 @@ export default function Fees() {
       </Busy>
       {pay && (
         <Modal title={`${t('fees.collect')} · ${pay.invoiceNo}`} onClose={() => setPay(null)}>
-          <form onSubmit={collect} className="space-y-3">
+          <form onSubmit={collect} className="space-y-3" noValidate>
+            <FormBanner>{formError}</FormBanner>
             <p className="text-sm text-slate-500">{t('fees.due')} {inr(pay.due, locale)}</p>
-            <input className="input" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <div>
+              <label className="label">{t('field.total')} *</label>
+              <input
+                className={inputClass(amountError)}
+                type="number"
+                min="1"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+              <FieldError>{amountError}</FieldError>
+            </div>
             <select className="input" value={method} onChange={(e) => setMethod(e.target.value)}>
               <option value="cash">{t('fees.cash')}</option>
               <option value="upi">{t('fees.upi')}</option>

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
 import LanguageSwitch from '../components/LanguageSwitch.jsx';
+import { FieldError, FormBanner } from '../components/ui.jsx';
+import { inputClass, isBlank } from '../utils/form.js';
 
 const DEMOS = [
   { roleKey: 'login.demo.super', email: 'superadmin@edunest.io', password: 'Admin@123' },
@@ -16,10 +18,19 @@ export default function Login() {
   const [email, setEmail] = useState('admin@greenwood.school');
   const [password, setPassword] = useState('Admin@123');
   const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
 
   async function submit(e) {
     e.preventDefault();
+    const next = {};
+    if (isBlank(email)) next.email = t('common.required');
+    if (isBlank(password)) next.password = t('common.required');
+    setErrors(next);
+    if (Object.keys(next).length) {
+      setError(t('common.fixFields'));
+      return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -49,7 +60,7 @@ export default function Login() {
         <p className="text-sm text-white/40">{t('login.demoNote')}</p>
       </div>
       <div className="flex items-center justify-center p-8 bg-[#f4f1ea]">
-        <form onSubmit={submit} className="w-full max-w-md">
+        <form onSubmit={submit} className="w-full max-w-md" noValidate>
           <div className="flex items-center justify-between mb-6">
             <p className="font-display text-3xl lg:hidden">EduNest</p>
             <div className="lg:hidden ml-auto">
@@ -58,12 +69,18 @@ export default function Login() {
           </div>
           <h2 className="text-2xl font-semibold">{t('login.title')}</h2>
           <p className="text-slate-500 mt-1 mb-8">{t('login.subtitle')}</p>
-          {error && <div className="mb-4 rounded-xl bg-rose-50 text-rose-700 px-4 py-3 text-sm">{error}</div>}
-          <label className="label">{t('login.email')}</label>
-          <input className="input mb-4" value={email} onChange={(e) => setEmail(e.target.value)} type="email" required />
-          <label className="label">{t('login.password')}</label>
-          <input className="input mb-6" value={password} onChange={(e) => setPassword(e.target.value)} type="password" required />
-          <button className="btn-primary w-full" disabled={busy}>
+          {error ? (
+            <div className="mb-4">
+              <FormBanner>{error}</FormBanner>
+            </div>
+          ) : null}
+          <label className="label">{t('login.email')} *</label>
+          <input className={`${inputClass(errors.email)} mb-1`} value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
+          <FieldError>{errors.email}</FieldError>
+          <label className="label mt-4">{t('login.password')} *</label>
+          <input className={`${inputClass(errors.password)} mb-1`} value={password} onChange={(e) => setPassword(e.target.value)} type="password" />
+          <FieldError>{errors.password}</FieldError>
+          <button className="btn-primary w-full mt-6" disabled={busy}>
             {busy ? t('login.signing') : t('login.continue')}
           </button>
           <div className="mt-8 space-y-2">

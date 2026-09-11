@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
-import { PageHeader, Modal, Badge } from '../components/ui.jsx';
+import { PageHeader, Modal, Badge, FieldError, FormBanner } from '../components/ui.jsx';
 import Pagination from '../components/Pagination.jsx';
 import { fullName } from '../utils/format.js';
 import { useLang } from '../context/LanguageContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { PAGE_SIZE } from '../utils/session.js';
+import { apiErrorMessage, inputClass, requiredErrors } from '../utils/form.js';
 
 export default function Exams() {
   const { t } = useLang();
@@ -19,6 +20,8 @@ export default function Exams() {
   const [resultPage, setResultPage] = useState(1);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', type: 'term' });
+  const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState('');
   const [card, setCard] = useState(null);
 
   async function load(nextPage = 1) {
@@ -38,9 +41,27 @@ export default function Exams() {
 
   async function create(e) {
     e.preventDefault();
-    await api.post('/exams', form);
-    setOpen(false);
-    load();
+    const nextErrors = requiredErrors(
+      form,
+      [
+        { name: 'name', required: true },
+        { name: 'startDate', required: true },
+      ],
+      t('common.required')
+    );
+    setErrors(nextErrors);
+    setFormError('');
+    if (Object.keys(nextErrors).length) {
+      setFormError(t('common.fixFields'));
+      return;
+    }
+    try {
+      await api.post('/exams', form);
+      setOpen(false);
+      load();
+    } catch (err) {
+      setFormError(apiErrorMessage(err, t('common.saveFailed')));
+    }
   }
 
   async function showResults(exam, nextPage = 1) {
@@ -66,7 +87,7 @@ export default function Exams() {
         title={t('exams.title')}
         subtitle={t('exams.subtitle')}
         actions={
-          <button className="btn-primary" onClick={() => setOpen(true)}>
+          <button className="btn-primary" onClick={() => { setForm({ name: '', type: 'term' }); setErrors({}); setFormError(''); setOpen(true); }}>
             {t('exams.new')}
           </button>
         }
@@ -175,9 +196,28 @@ export default function Exams() {
       )}
       {open && (
         <Modal title={t('exams.create')} onClose={() => setOpen(false)}>
-          <form onSubmit={create} className="space-y-3">
-            <input className="input" placeholder={t('exams.name')} required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            <input className="input" type="date" value={form.startDate || ''} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+          <form onSubmit={create} className="space-y-3" noValidate>
+            <FormBanner>{formError}</FormBanner>
+            <div>
+              <label className="label">{t('exams.name')} *</label>
+              <input
+                className={inputClass(errors.name)}
+                placeholder={t('exams.name')}
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
+              <FieldError>{errors.name}</FieldError>
+            </div>
+            <div>
+              <label className="label">{t('field.start')} *</label>
+              <input
+                className={inputClass(errors.startDate)}
+                type="date"
+                value={form.startDate || ''}
+                onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+              />
+              <FieldError>{errors.startDate}</FieldError>
+            </div>
             <button className="btn-primary w-full">{t('common.save')}</button>
           </form>
         </Modal>
