@@ -19,6 +19,7 @@ export default function Attendance() {
   const [records, setRecords] = useState({});
   const [report, setReport] = useState(null);
   const [tab, setTab] = useState('mark');
+  const [sheetPage, setSheetPage] = useState(1);
 
   useEffect(() => {
     api
@@ -36,6 +37,7 @@ export default function Attendance() {
     if (!classId) return;
     const { data } = await api.get('/attendance/sheet', { params: { classId, sectionId, date } });
     setStudents(data.students || []);
+    setSheetPage(1);
     const map = {};
     (data.students || []).forEach((s) => {
       const existing = data.attendance?.records?.find((r) => String(r.studentId) === String(s._id));
@@ -105,7 +107,7 @@ export default function Attendance() {
               </tr>
             </thead>
             <tbody>
-              {students.map((s) => (
+              {students.slice((sheetPage - 1) * PAGE_SIZE, sheetPage * PAGE_SIZE).map((s) => (
                 <tr key={s._id}>
                   <td>{s.rollNo}</td>
                   <td>{fullName(s)}</td>
@@ -122,6 +124,12 @@ export default function Attendance() {
               ))}
             </tbody>
           </table>
+          <Pagination
+            page={sheetPage}
+            pages={Math.max(1, Math.ceil(students.length / PAGE_SIZE) || 1)}
+            total={students.length}
+            onPage={setSheetPage}
+          />
           {students.length > 0 && (
             <div className="p-4">
               <button className="btn-primary" onClick={save}>

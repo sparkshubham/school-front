@@ -69,6 +69,16 @@ export function Empty({ children }) {
   return <div className="py-12 text-center text-slate-500">{children}</div>;
 }
 
+export function FieldError({ children }) {
+  if (!children) return null;
+  return <p className="text-xs text-rose-600 mt-1">{children}</p>;
+}
+
+export function FormBanner({ children }) {
+  if (!children) return null;
+  return <div className="rounded-xl bg-rose-50 text-rose-700 px-3 py-2 text-sm">{children}</div>;
+}
+
 export function Modal({ title, children, onClose }) {
   const { t } = useLang();
   return (

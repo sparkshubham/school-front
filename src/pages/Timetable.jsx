@@ -28,7 +28,7 @@ export default function Timetable() {
   useEffect(() => {
     if (!classId) return;
     api
-      .get('/timetable', { params: { classId } })
+      .get('/timetable', { params: { classId, limit: 50 } })
       .then((r) => setSlots(r.data.items || []))
       .catch(() => setSlots([]));
   }, [classId]);

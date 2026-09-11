@@ -1,50 +1,83 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
 import { PageHeader, Busy } from '../components/ui.jsx';
+import Pagination from '../components/Pagination.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
+import { PAGE_SIZE } from '../utils/session.js';
 
-function Block({ title, items, fields, label, path, onChanged }) {
+function Block({ title, fields, label, path, onChanged }) {
   const { t } = useLang();
   const [form, setForm] = useState({});
+  const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  async function load(nextPage = 1) {
+    setLoading(true);
+    try {
+      const { data } = await api.get(path, { params: { page: nextPage, limit: PAGE_SIZE } });
+      setItems(data.items || []);
+      setTotal(data.total || 0);
+      setPages(data.pages || 1);
+      setPage(data.page || nextPage);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    load(1);
+  }, [path]);
+
   async function add(e) {
     e.preventDefault();
     await api.post(path, form);
     setForm({});
-    onChanged();
+    await load(1);
+    onChanged?.();
   }
+
   return (
-    <div className="card p-5">
-      <h3 className="font-semibold mb-3">{title}</h3>
-      <form onSubmit={add} className="flex flex-wrap gap-2 mb-4">
-        {fields.map((f) => (
-          <input
-            key={f.name}
-            className="input flex-1 min-w-[120px]"
-            placeholder={f.label}
-            value={form[f.name] || ''}
-            onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
-            required={f.required}
-          />
-        ))}
-        <button className="btn-primary">{t('common.add')}</button>
-      </form>
-      <ul className="text-sm space-y-1">
-        {items.map((i) => (
-          <li key={i._id} className="flex justify-between border-b border-slate-50 py-1.5">
-            <span>{label(i)}</span>
-            <button
-              className="text-rose-600"
-              onClick={async () => {
-                await api.delete(`${path}/${i._id}`);
-                onChanged();
-              }}
-            >
-              {t('common.remove')}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <Busy on={loading} className="card">
+      <div className="p-5">
+        <h3 className="font-semibold mb-3">{title}</h3>
+        <form onSubmit={add} className="flex flex-wrap gap-2 mb-4">
+          {fields.map((f) => (
+            <input
+              key={f.name}
+              className="input flex-1 min-w-[120px]"
+              placeholder={f.label}
+              value={form[f.name] || ''}
+              onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+              required={f.required}
+            />
+          ))}
+          <button className="btn-primary">{t('common.add')}</button>
+        </form>
+        <ul className="text-sm space-y-1">
+          {items.map((i) => (
+            <li key={i._id} className="flex justify-between border-b border-slate-50 py-1.5">
+              <span>{label(i)}</span>
+              <button
+                className="text-rose-600"
+                onClick={async () => {
+                  await api.delete(`${path}/${i._id}`);
+                  await load(page);
+                  onChanged?.();
+                }}
+              >
+                {t('common.remove')}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <Pagination page={page} pages={pages} total={total} onPage={load} />
+    </Busy>
   );
 }
 
@@ -54,19 +87,17 @@ export default function Academic() {
   const [subjects, setSubjects] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [sections, setSections] = useState([]);
-  const [sessions, setSessions] = useState([]);
   const [assign, setAssign] = useState({});
   const [loading, setLoading] = useState(true);
 
   async function loadMeta(initial = false) {
     if (initial) setLoading(true);
     try {
-      const { data } = await api.get('/meta', { params: { keys: 'classes,sections,subjects,sessions,teachers' } });
+      const { data } = await api.get('/meta', { params: { keys: 'classes,sections,subjects,teachers' } });
       setClasses(data.classes || []);
       setSubjects(data.subjects || []);
       setTeachers(data.teachers || []);
       setSections(data.sections || []);
-      setSessions(data.sessions || []);
     } catch {
       /* keep last good data */
     } finally {
@@ -93,7 +124,6 @@ export default function Academic() {
         <Block
           title={t('academic.sessions')}
           path="/sessions"
-          items={sessions}
           onChanged={loadMeta}
           fields={[
             { name: 'name', label: '2026-27', required: true },
@@ -105,7 +135,6 @@ export default function Academic() {
         <Block
           title={t('academic.classes')}
           path="/classes"
-          items={classes}
           onChanged={loadMeta}
           fields={[
             { name: 'name', label: t('academic.className'), required: true },
@@ -116,7 +145,6 @@ export default function Academic() {
         <Block
           title={t('academic.sections')}
           path="/sections"
-          items={sections}
           onChanged={loadMeta}
           fields={[
             { name: 'classId', label: t('academic.classId'), required: true },
@@ -127,7 +155,6 @@ export default function Academic() {
         <Block
           title={t('academic.subjects')}
           path="/subjects"
-          items={subjects}
           onChanged={loadMeta}
           fields={[
             { name: 'name', label: t('academic.subject'), required: true },

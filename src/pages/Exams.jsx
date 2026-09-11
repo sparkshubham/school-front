@@ -80,11 +80,9 @@ export default function Exams() {
           </button>
         ))}
       </div>
-      {pages > 1 && (
-        <div className="mb-6">
-          <Pagination page={page} pages={pages} total={total} onPage={load} />
-        </div>
-      )}
+      <div className="card mb-6">
+        <Pagination page={page} pages={pages} total={total} onPage={load} />
+      </div>
       {results && (
         <div className="card table-wrap">
           <div className="p-4 font-semibold">{t('exams.results', { name: results.exam.name })}</div>

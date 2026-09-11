@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
-import { PageHeader, Modal, Empty, Busy } from './ui.jsx';
+import { PageHeader, Modal, Empty, Busy, FieldError, FormBanner } from './ui.jsx';
 import Pagination from './Pagination.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
 import { PAGE_SIZE } from '../utils/session.js';
+import { apiErrorMessage, inputClass, requiredErrors, toDateInput } from '../utils/form.js';
 
 export default function ResourcePage({
   title,
@@ -24,6 +25,8 @@ export default function ResourcePage({
   const [form, setForm] = useState({});
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState('');
 
   async function load(nextPage = page) {
     setLoading(true);
@@ -53,6 +56,8 @@ export default function ResourcePage({
   function startCreate() {
     setEditing(null);
     setForm({});
+    setErrors({});
+    setFormError('');
     setOpen(true);
   }
 
@@ -61,18 +66,32 @@ export default function ResourcePage({
     const next = {};
     fields.forEach((f) => {
       const val = row[f.name];
-      next[f.name] = val && typeof val === 'object' ? val._id : val ?? '';
+      if (f.type === 'date') next[f.name] = toDateInput(val);
+      else next[f.name] = val && typeof val === 'object' ? val._id : val ?? '';
     });
     setForm(next);
+    setErrors({});
+    setFormError('');
     setOpen(true);
   }
 
   async function save(e) {
     e.preventDefault();
-    if (editing) await api.patch(`${path}/${editing._id}`, form);
-    else await api.post(path, form);
-    setOpen(false);
-    load(editing ? page : 1);
+    const nextErrors = requiredErrors(form, fields, t('common.required'));
+    setErrors(nextErrors);
+    setFormError('');
+    if (Object.keys(nextErrors).length) {
+      setFormError(t('common.fixFields'));
+      return;
+    }
+    try {
+      if (editing) await api.patch(`${path}/${editing._id}`, form);
+      else await api.post(path, form);
+      setOpen(false);
+      load(editing ? page : 1);
+    } catch (err) {
+      setFormError(apiErrorMessage(err, t('common.saveFailed')));
+    }
   }
 
   async function remove(row) {
@@ -136,16 +155,19 @@ export default function ResourcePage({
       </Busy>
       {open && (
         <Modal title={editing ? t('common.edit') : t('common.create')} onClose={() => setOpen(false)}>
-          <form onSubmit={save} className="space-y-3">
+          <form onSubmit={save} className="space-y-3" noValidate>
+            <FormBanner>{formError}</FormBanner>
             {fields.map((f) => (
               <div key={f.name}>
-                <label className="label">{f.label}</label>
+                <label className="label">
+                  {f.label}
+                  {f.required ? ' *' : ''}
+                </label>
                 {f.type === 'select' ? (
                   <select
-                    className="input"
+                    className={inputClass(errors[f.name])}
                     value={form[f.name] || ''}
                     onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
-                    required={f.required}
                   >
                     <option value="">{t('common.select')}</option>
                     {(f.options || []).map((o) => (
@@ -156,20 +178,20 @@ export default function ResourcePage({
                   </select>
                 ) : f.type === 'textarea' ? (
                   <textarea
-                    className="input"
+                    className={inputClass(errors[f.name])}
                     rows={4}
                     value={form[f.name] || ''}
                     onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
                   />
                 ) : (
                   <input
-                    className="input"
+                    className={inputClass(errors[f.name])}
                     type={f.type || 'text'}
                     value={form[f.name] ?? ''}
                     onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
-                    required={f.required}
                   />
                 )}
+                <FieldError>{errors[f.name]}</FieldError>
               </div>
             ))}
             <button className="btn-primary w-full mt-2">{t('common.save')}</button>

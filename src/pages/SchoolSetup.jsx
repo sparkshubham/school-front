@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
 import { PageHeader, PageSpinner } from '../components/ui.jsx';
+import Pagination from '../components/Pagination.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
+import { PAGE_SIZE } from '../utils/session.js';
 
 export default function SchoolSetup() {
   const { t } = useLang();
   const [school, setSchool] = useState(null);
   const [branches, setBranches] = useState([]);
   const [saved, setSaved] = useState(false);
+  const [branchPage, setBranchPage] = useState(1);
 
   useEffect(() => {
     api
@@ -60,13 +63,21 @@ export default function SchoolSetup() {
               <button className="btn-primary">{saved ? t('common.saved') : t('setup.save')}</button>
             </div>
           </form>
-          <div className="card p-6 mt-6">
-            <h3 className="font-semibold mb-3">{t('setup.branches')}</h3>
-            {branches.map((b) => (
-              <div key={b._id} className="py-2 border-b border-slate-50">
-                {b.name} {b.isMain ? `· ${t('common.main')}` : ''} · {b.address || ''}
-              </div>
-            ))}
+          <div className="card mt-6">
+            <div className="p-6">
+              <h3 className="font-semibold mb-3">{t('setup.branches')}</h3>
+              {branches.slice((branchPage - 1) * PAGE_SIZE, branchPage * PAGE_SIZE).map((b) => (
+                <div key={b._id} className="py-2 border-b border-slate-50">
+                  {b.name} {b.isMain ? `· ${t('common.main')}` : ''} · {b.address || ''}
+                </div>
+              ))}
+            </div>
+            <Pagination
+              page={branchPage}
+              pages={Math.max(1, Math.ceil(branches.length / PAGE_SIZE) || 1)}
+              total={branches.length}
+              onPage={setBranchPage}
+            />
           </div>
         </>
       )}
