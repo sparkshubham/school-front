@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api/client.js';
-import { PageHeader, StatCard, Badge } from '../../components/ui.jsx';
+import { PageHeader, StatCard, Badge, PageSpinner } from '../../components/ui.jsx';
 import { inr } from '../../utils/format.js';
 import { useLang } from '../../context/LanguageContext.jsx';
 
@@ -19,15 +19,15 @@ export default function SuperDashboard() {
     return () => {
       live = false;
     };
-  }, [t]);
-
-  if (error) return <p className="text-rose-600">{error}</p>;
-
-  if (!data) return <p className="text-slate-500">{t('super.loading')}</p>;
+  }, []);
 
   return (
     <div>
       <PageHeader title={t('super.morning')} subtitle={t('super.subtitle')} />
+      {error && <p className="text-rose-600 mb-4">{error}</p>}
+      {!data && !error ? <PageSpinner /> : null}
+      {data ? (
+      <>
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard label={t('super.totalSchools')} value={data.totalSchools} />
         <StatCard label={t('super.active')} value={data.active} tone="slate" />
@@ -71,6 +71,8 @@ export default function SuperDashboard() {
           </div>
         </div>
       </div>
+      </>
+      ) : null}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../../api/client.js';
-import { PageHeader, StatCard } from '../../components/ui.jsx';
+import { PageHeader, StatCard, PageSpinner } from '../../components/ui.jsx';
 import { fullName, fmtDate } from '../../utils/format.js';
 import { useLang } from '../../context/LanguageContext.jsx';
 
@@ -17,16 +17,18 @@ export default function StudentDashboard() {
     return () => {
       live = false;
     };
-  }, [t]);
-  if (error) return <p className="text-rose-600">{error}</p>;
-  if (!data) return <p className="text-slate-500">{t('common.loading')}</p>;
-  const s = data.student;
+  }, []);
+  const s = data?.student;
   return (
     <div>
       <PageHeader
         title={s ? fullName(s) : t('dash.student')}
         subtitle={s ? `${s.classId?.name}-${s.sectionId?.name} · ${t('dash.roll', { n: s.rollNo })}` : ''}
       />
+      {error && <p className="text-rose-600 mb-4">{error}</p>}
+      {!data && !error ? <PageSpinner /> : null}
+      {data ? (
+      <>
       <div className="grid sm:grid-cols-2 gap-4 mb-6">
         <StatCard label={t('dash.homeworkDue')} value={data.homework?.length || 0} />
         <StatCard label={t('dash.invoices')} value={data.invoices?.length || 0} tone="gold" />
@@ -40,6 +42,8 @@ export default function StudentDashboard() {
           </div>
         ))}
       </div>
+      </>
+      ) : null}
     </div>
   );
 }

@@ -1,8 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.jsx';
-import { useLang } from './context/LanguageContext.jsx';
 import DashboardLayout from './layouts/DashboardLayout.jsx';
+import { Spinner } from './components/ui.jsx';
 
 const Login = lazy(() => import('./pages/Login.jsx'));
 const Home = lazy(() => import('./pages/Home.jsx'));
@@ -27,50 +27,56 @@ const Complaints = lazy(() => import('./pages/Complaints.jsx'));
 const Reports = lazy(() => import('./pages/Reports.jsx'));
 
 function ScreenFallback() {
-  const { t } = useLang();
-  return <p className="text-slate-500 p-6">{t('common.loading')}</p>;
+  return (
+    <div className="min-h-screen grid place-items-center bg-[#f4f1ea]">
+      <Spinner className="h-8 w-8" />
+    </div>
+  );
 }
 
 function Guard({ children }) {
   const { user, loading } = useAuth();
-  const { t } = useLang();
-  if (loading) {
-    return (
-      <div className="min-h-screen grid place-items-center text-slate-500">
-        {t('common.loading')}
-      </div>
-    );
-  }
+  if (loading) return <ScreenFallback />;
   if (!user) return <Navigate to="/login" replace />;
   return children;
 }
 
 function Guest({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return null;
   if (user) return <Navigate to="/" replace />;
+  if (loading) {
+    return (
+      <div className="relative min-h-screen">
+        {children}
+        <div className="absolute inset-0 grid place-items-center bg-[#f4f1ea]/70">
+          <Spinner className="h-8 w-8" />
+        </div>
+      </div>
+    );
+  }
   return children;
 }
 
 export default function App() {
   return (
-    <Suspense fallback={<ScreenFallback />}>
-      <Routes>
-        <Route
-          path="/login"
-          element={
+    <Routes>
+      <Route
+        path="/login"
+        element={
+          <Suspense fallback={<ScreenFallback />}>
             <Guest>
               <Login />
             </Guest>
-          }
-        />
-        <Route
-          element={
-            <Guard>
-              <DashboardLayout />
-            </Guard>
-          }
-        >
+          </Suspense>
+        }
+      />
+      <Route
+        element={
+          <Guard>
+            <DashboardLayout />
+          </Guard>
+        }
+      >
           <Route path="/" element={<Home />} />
           <Route path="/schools" element={<Schools />} />
           <Route path="/setup" element={<SchoolSetup />} />
@@ -94,6 +100,5 @@ export default function App() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </Suspense>
   );
 }

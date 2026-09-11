@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../../api/client.js';
-import { PageHeader, StatCard } from '../../components/ui.jsx';
+import { PageHeader, StatCard, PageSpinner } from '../../components/ui.jsx';
 import { fullName, inr, fmtDate } from '../../utils/format.js';
 import { useLang } from '../../context/LanguageContext.jsx';
 
@@ -17,17 +17,19 @@ export default function ParentDashboard() {
     return () => {
       live = false;
     };
-  }, [t]);
-  if (error) return <p className="text-rose-600">{error}</p>;
-  if (!data) return <p className="text-slate-500">{t('common.loading')}</p>;
-  const child = data.parent?.students?.[0];
-  const pending = data.invoices?.reduce((s, i) => s + (i.due || 0), 0) || 0;
+  }, []);
+  const child = data?.parent?.students?.[0];
+  const pending = data?.invoices?.reduce((s, i) => s + (i.due || 0), 0) || 0;
   return (
     <div>
       <PageHeader
         title={child ? fullName(child) : t('dash.parent')}
         subtitle={child ? `${child.classId?.name}-${child.sectionId?.name}` : ''}
       />
+      {error && <p className="text-rose-600 mb-4">{error}</p>}
+      {!data && !error ? <PageSpinner /> : null}
+      {data ? (
+      <>
       <div className="grid sm:grid-cols-3 gap-4 mb-6">
         <StatCard label={t('dash.pendingFees')} value={inr(pending, locale)} tone="gold" />
         <StatCard label={t('dash.homework')} value={data.homework.length} />
@@ -50,6 +52,8 @@ export default function ParentDashboard() {
           ))}
         </div>
       </div>
+      </>
+      ) : null}
     </div>
   );
 }

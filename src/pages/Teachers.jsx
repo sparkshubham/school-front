@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
-import { PageHeader, Modal, Empty } from '../components/ui.jsx';
+import { PageHeader, Modal, Empty, Busy } from '../components/ui.jsx';
 import Pagination from '../components/Pagination.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
 import { PAGE_SIZE } from '../utils/session.js';
@@ -18,8 +18,10 @@ export default function Teachers() {
   const [editing, setEditing] = useState(null);
   const [creds, setCreds] = useState(null);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
 
   async function load(nextPage = page) {
+    setLoading(true);
     try {
       const { data } = await api.get('/teachers', { params: { q: qDebounced, page: nextPage, limit: PAGE_SIZE } });
       setItems(data.items || []);
@@ -28,6 +30,8 @@ export default function Teachers() {
       setPage(data.page || nextPage);
     } catch {
       setItems([]);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -121,7 +125,7 @@ export default function Teachers() {
           </button>
         }
       />
-      <div className="card">
+      <Busy on={loading} className="card">
         <div className="p-4 border-b border-slate-100">
           <input className="input max-w-sm" placeholder={t('teachers.search')} value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
@@ -138,7 +142,7 @@ export default function Teachers() {
               </tr>
             </thead>
             <tbody>
-              {items.length === 0 && (
+              {items.length === 0 && !loading && (
                 <tr>
                   <td colSpan={6}>
                     <Empty>{t('teachers.none')}</Empty>
@@ -172,7 +176,7 @@ export default function Teachers() {
           </table>
         </div>
         <Pagination page={page} pages={pages} total={total} onPage={load} />
-      </div>
+      </Busy>
 
       {open && (
         <Modal title={editing ? t('teachers.edit') : t('teachers.add')} onClose={() => setOpen(false)}>

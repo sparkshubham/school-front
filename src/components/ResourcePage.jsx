@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
-import { PageHeader, Modal, Empty } from './ui.jsx';
+import { PageHeader, Modal, Empty, Busy } from './ui.jsx';
 import Pagination from './Pagination.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
 import { PAGE_SIZE } from '../utils/session.js';
@@ -23,8 +23,10 @@ export default function ResourcePage({
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({});
   const [editing, setEditing] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   async function load(nextPage = page) {
+    setLoading(true);
     try {
       const { data } = await api.get(path, { params: { q: qDebounced, page: nextPage, limit: PAGE_SIZE } });
       setItems(data.items || []);
@@ -33,6 +35,8 @@ export default function ResourcePage({
       setPage(data.page || nextPage);
     } catch {
       setItems([]);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -88,7 +92,7 @@ export default function ResourcePage({
           </button>
         }
       />
-      <div className="card">
+      <Busy on={loading} className="card">
         <div className="p-4 border-b border-slate-100">
           <input className="input max-w-sm" placeholder={searchPlaceholder || t('common.search')} value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
@@ -103,7 +107,7 @@ export default function ResourcePage({
               </tr>
             </thead>
             <tbody>
-              {items.length === 0 && (
+              {items.length === 0 && !loading && (
                 <tr>
                   <td colSpan={columns.length + 1}>
                     <Empty>{t('common.noRecords')}</Empty>
@@ -129,7 +133,7 @@ export default function ResourcePage({
           </table>
         </div>
         <Pagination page={page} pages={pages} total={total} onPage={load} />
-      </div>
+      </Busy>
       {open && (
         <Modal title={editing ? t('common.edit') : t('common.create')} onClose={() => setOpen(false)}>
           <form onSubmit={save} className="space-y-3">

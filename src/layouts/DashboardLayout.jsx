@@ -1,10 +1,11 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { LogOut, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
 import { NAV } from '../nav.js';
 import LanguageSwitch from '../components/LanguageSwitch.jsx';
+import { PageSpinner } from '../components/ui.jsx';
 
 export default function DashboardLayout() {
   const { user, school, logout } = useAuth();
@@ -89,7 +90,9 @@ export default function DashboardLayout() {
           </div>
         </header>
         <main className="p-4 md:p-6 lg:p-8">
-          <Outlet />
+          <Suspense fallback={<PageSpinner />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

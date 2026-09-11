@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useLang } from '../../context/LanguageContext.jsx';
-import { PageHeader, StatCard, Badge } from '../../components/ui.jsx';
+import { PageHeader, StatCard, Badge, PageSpinner } from '../../components/ui.jsx';
 import { fullName, inr, fmtDate } from '../../utils/format.js';
 
 export default function SchoolDashboard() {
@@ -21,11 +21,7 @@ export default function SchoolDashboard() {
     return () => {
       live = false;
     };
-  }, [t]);
-
-  if (error) return <p className="text-rose-600">{error}</p>;
-
-  if (!data) return <p className="text-slate-500">{t('dash.loadingCampus')}</p>;
+  }, []);
 
   return (
     <div>
@@ -33,6 +29,10 @@ export default function SchoolDashboard() {
         title={t('dash.goodMorning', { name: user?.name?.split(' ')[0] || 'Admin' })}
         subtitle={school?.name || t('dash.school')}
       />
+      {error && <p className="text-rose-600 mb-4">{error}</p>}
+      {!data && !error ? <PageSpinner /> : null}
+      {data ? (
+      <>
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard label={t('dash.students')} value={data.students} />
         <StatCard label={t('dash.teachers')} value={data.teachers} tone="slate" />
@@ -107,6 +107,8 @@ export default function SchoolDashboard() {
           <p className="text-slate-600">{data.birthdays.map(fullName).join(', ')}</p>
         </div>
       )}
+      </>
+      ) : null}
     </div>
   );
 }

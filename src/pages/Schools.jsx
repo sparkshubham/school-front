@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
-import { PageHeader, Modal, StatCard, Badge } from '../components/ui.jsx';
+import { PageHeader, Modal, StatCard, Badge, Busy } from '../components/ui.jsx';
 import Pagination from '../components/Pagination.jsx';
 import { inr } from '../utils/format.js';
 import { useLang } from '../context/LanguageContext.jsx';
@@ -17,8 +17,10 @@ export default function Schools() {
   const [counts, setCounts] = useState({ total: 0, active: 0, trial: 0 });
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ plan: 'professional', status: 'trial' });
+  const [loading, setLoading] = useState(true);
 
   async function load(nextPage = 1) {
+    setLoading(true);
     try {
       const { data } = await api.get('/schools', { params: { page: nextPage, limit: PAGE_SIZE } });
       setItems(data.items || []);
@@ -28,6 +30,8 @@ export default function Schools() {
       setCounts(data.counts || { total: data.total || 0, active: 0, trial: 0 });
     } catch {
       setItems([]);
+    } finally {
+      setLoading(false);
     }
   }
   useEffect(() => {
@@ -68,7 +72,7 @@ export default function Schools() {
         <StatCard label={t('super.active')} value={counts.active || 0} tone="slate" />
         <StatCard label={t('super.trial')} value={counts.trial || 0} tone="gold" />
       </div>
-      <div className="card table-wrap">
+      <Busy on={loading} className="card table-wrap">
         <table className="data">
           <thead>
             <tr>
@@ -111,7 +115,7 @@ export default function Schools() {
           </tbody>
         </table>
         <Pagination page={page} pages={pages} total={total} onPage={load} />
-      </div>
+      </Busy>
       {open && (
         <Modal title={t('schools.add')} onClose={() => setOpen(false)}>
           <form onSubmit={create} className="space-y-3">

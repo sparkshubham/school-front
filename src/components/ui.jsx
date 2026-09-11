@@ -1,5 +1,33 @@
+import { Loader2 } from 'lucide-react';
 import { STATUS_COLORS } from '../utils/format.js';
 import { useLang } from '../context/LanguageContext.jsx';
+
+export function Spinner({ className = 'h-7 w-7' }) {
+  return <Loader2 className={`animate-spin text-pine-700 ${className}`} aria-hidden />;
+}
+
+export function PageSpinner() {
+  const { t } = useLang();
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-16 min-h-[280px]" role="status" aria-live="polite">
+      <Spinner className="h-8 w-8" />
+      <p className="text-sm text-slate-500">{t('common.loading')}</p>
+    </div>
+  );
+}
+
+export function Busy({ on, children, className = '' }) {
+  return (
+    <div className={`relative ${on ? 'min-h-[220px]' : ''} ${className}`}>
+      {children}
+      {on && (
+        <div className="absolute inset-0 z-10 grid place-items-center rounded-2xl bg-white/70 backdrop-blur-[1px]">
+          <Spinner className="h-8 w-8" />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function Badge({ children, status }) {
   const { t } = useLang();

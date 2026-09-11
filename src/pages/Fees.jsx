@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
-import { PageHeader, Modal, StatCard, Badge } from '../components/ui.jsx';
+import { PageHeader, Modal, StatCard, Badge, Busy } from '../components/ui.jsx';
 import Pagination from '../components/Pagination.jsx';
 import { fullName, inr } from '../utils/format.js';
 import { useLang } from '../context/LanguageContext.jsx';
@@ -17,8 +17,10 @@ export default function Fees() {
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState('upi');
   const [status, setStatus] = useState('');
+  const [loading, setLoading] = useState(true);
 
   async function load(nextPage = 1) {
+    setLoading(true);
     try {
       const inv = await api.get('/fees/invoices', { params: { status, page: nextPage, limit: PAGE_SIZE } });
       setInvoices(inv.data.items || []);
@@ -31,6 +33,8 @@ export default function Fees() {
       }
     } catch {
       setInvoices([]);
+    } finally {
+      setLoading(false);
     }
   }
   useEffect(() => {
@@ -62,7 +66,7 @@ export default function Fees() {
           </button>
         ))}
       </div>
-      <div className="card table-wrap">
+      <Busy on={loading} className="card table-wrap">
         <table className="data">
           <thead>
             <tr>
@@ -104,7 +108,7 @@ export default function Fees() {
           </tbody>
         </table>
         <Pagination page={page} pages={pages} total={total} onPage={load} />
-      </div>
+      </Busy>
       {pay && (
         <Modal title={`${t('fees.collect')} · ${pay.invoiceNo}`} onClose={() => setPay(null)}>
           <form onSubmit={collect} className="space-y-3">

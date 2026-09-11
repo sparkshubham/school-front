@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useLang } from '../../context/LanguageContext.jsx';
-import { PageHeader, StatCard } from '../../components/ui.jsx';
+import { PageHeader, StatCard, PageSpinner } from '../../components/ui.jsx';
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
@@ -19,12 +19,14 @@ export default function TeacherDashboard() {
     return () => {
       live = false;
     };
-  }, [t]);
-  if (error) return <p className="text-rose-600">{error}</p>;
-  if (!data) return <p className="text-slate-500">{t('common.loading')}</p>;
+  }, []);
   return (
     <div>
-      <PageHeader title={t('dash.hello', { name: user?.name?.split(' ')[0] })} subtitle={data.teacher?.designation || t('dash.teacherPortal')} />
+      <PageHeader title={t('dash.hello', { name: user?.name?.split(' ')[0] })} subtitle={data?.teacher?.designation || t('dash.teacherPortal')} />
+      {error && <p className="text-rose-600 mb-4">{error}</p>}
+      {!data && !error ? <PageSpinner /> : null}
+      {data ? (
+      <>
       <div className="grid sm:grid-cols-3 gap-4 mb-6">
         <StatCard label={t('dash.assigned')} value={data.assigned.length} />
         <StatCard label={t('dash.homework')} value={data.homework.length} tone="gold" />
@@ -49,6 +51,8 @@ export default function TeacherDashboard() {
           ))}
         </div>
       </div>
+      </>
+      ) : null}
     </div>
   );
 }

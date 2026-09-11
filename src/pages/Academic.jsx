@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
-import { PageHeader } from '../components/ui.jsx';
+import { PageHeader, Busy } from '../components/ui.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
 
 function Block({ title, items, fields, label, path, onChanged }) {
@@ -56,8 +56,10 @@ export default function Academic() {
   const [sections, setSections] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [assign, setAssign] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  async function loadMeta() {
+  async function loadMeta(initial = false) {
+    if (initial) setLoading(true);
     try {
       const { data } = await api.get('/meta', { params: { keys: 'classes,sections,subjects,sessions,teachers' } });
       setClasses(data.classes || []);
@@ -67,11 +69,13 @@ export default function Academic() {
       setSessions(data.sessions || []);
     } catch {
       /* keep last good data */
+    } finally {
+      if (initial) setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadMeta();
+    loadMeta(true);
   }, []);
 
   async function assignSubject(e) {
@@ -84,6 +88,7 @@ export default function Academic() {
   return (
     <div>
       <PageHeader title={t('academic.title')} subtitle={t('academic.subtitle')} />
+      <Busy on={loading}>
       <div className="grid lg:grid-cols-2 gap-6">
         <Block
           title={t('academic.sessions')}
@@ -167,6 +172,7 @@ export default function Academic() {
         </select>
         <button className="btn-primary md:col-span-4">{t('academic.saveMap')}</button>
       </form>
+      </Busy>
     </div>
   );
 }

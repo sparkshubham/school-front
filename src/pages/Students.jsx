@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import api from '../api/client.js';
-import { PageHeader, Modal, Empty, Badge } from '../components/ui.jsx';
+import { PageHeader, Modal, Empty, Badge, Busy } from '../components/ui.jsx';
 import Pagination from '../components/Pagination.jsx';
 import { fullName } from '../utils/format.js';
 import { useLang } from '../context/LanguageContext.jsx';
@@ -19,9 +19,11 @@ export default function Students() {
   const [classId, setClassId] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ createLogin: true });
+  const [loading, setLoading] = useState(true);
   const metaLoaded = useRef(false);
 
   async function load(nextPage = page) {
+    setLoading(true);
     try {
       const { data } = await api.get('/students', {
         params: { q: qDebounced, classId, page: nextPage, limit: PAGE_SIZE },
@@ -32,6 +34,8 @@ export default function Students() {
       setPage(data.page || nextPage);
     } catch {
       setItems([]);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -80,7 +84,7 @@ export default function Students() {
           </button>
         }
       />
-      <div className="card">
+      <Busy on={loading} className="card">
         <div className="p-4 flex flex-wrap gap-3 border-b border-slate-100">
           <input className="input max-w-xs" placeholder={t('students.search')} value={q} onChange={(e) => setQ(e.target.value)} />
           <select className="input max-w-xs" value={classId} onChange={(e) => setClassId(e.target.value)}>
@@ -104,7 +108,7 @@ export default function Students() {
               </tr>
             </thead>
             <tbody>
-              {items.length === 0 && (
+              {items.length === 0 && !loading && (
                 <tr>
                   <td colSpan={5}>
                     <Empty>{t('students.none')}</Empty>
@@ -131,7 +135,7 @@ export default function Students() {
           </table>
         </div>
         <Pagination page={page} pages={pages} total={total} onPage={load} />
-      </div>
+      </Busy>
       {open && (
         <Modal title={t('students.new')} onClose={() => setOpen(false)}>
           <form onSubmit={save} className="grid grid-cols-2 gap-3">
