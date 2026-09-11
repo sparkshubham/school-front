@@ -218,6 +218,7 @@ export default function Teachers() {
                 <input
                   className={inputClass(errors[name])}
                   type={name === 'salary' ? 'number' : name === 'email' ? 'email' : 'text'}
+                  step={name === 'salary' ? 'any' : undefined}
                   value={form[name] ?? ''}
                   onChange={(e) => setForm({ ...form, [name]: e.target.value })}
                 />

@@ -65,14 +65,30 @@ function Block({ title, fields, label, path, onChanged }) {
           <div className="flex flex-wrap gap-2 mt-2">
             {fields.map((f) => (
               <div key={f.name} className="flex-1 min-w-[120px]">
-                <input
-                  className={inputClass(errors[f.name])}
-                  type={f.type || 'text'}
-                  placeholder={`${f.label}${f.required ? ' *' : ''}`}
-                  title={f.label}
-                  value={form[f.name] || ''}
-                  onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
-                />
+                {f.type === 'select' ? (
+                  <select
+                    className={inputClass(errors[f.name])}
+                    value={form[f.name] || ''}
+                    onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+                  >
+                    <option value="">{`${f.label}${f.required ? ' *' : ''}`}</option>
+                    {(f.options || []).map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    className={inputClass(errors[f.name])}
+                    type={f.type || 'text'}
+                    step={f.type === 'number' ? f.step || 'any' : undefined}
+                    placeholder={`${f.label}${f.required ? ' *' : ''}`}
+                    title={f.label}
+                    value={form[f.name] || ''}
+                    onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+                  />
+                )}
                 <FieldError>{errors[f.name]}</FieldError>
               </div>
             ))}
@@ -179,7 +195,7 @@ export default function Academic() {
           onChanged={loadMeta}
           fields={[
             { name: 'name', label: t('academic.className'), required: true },
-            { name: 'numeric', label: t('academic.numeric') },
+            { name: 'numeric', label: t('academic.numeric'), type: 'number', step: '1' },
           ]}
           label={(i) => i.name}
         />
@@ -188,7 +204,13 @@ export default function Academic() {
           path="/sections"
           onChanged={loadMeta}
           fields={[
-            { name: 'classId', label: t('academic.classId'), required: true },
+            {
+              name: 'classId',
+              label: t('field.class'),
+              required: true,
+              type: 'select',
+              options: classes.map((c) => ({ value: c._id, label: c.name })),
+            },
             { name: 'name', label: 'A / B / C', required: true },
           ]}
           label={(i) => `${i.classId?.name || i.classId} — ${i.name}`}

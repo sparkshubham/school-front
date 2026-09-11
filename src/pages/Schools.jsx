@@ -17,6 +17,7 @@ export default function Schools() {
   const [total, setTotal] = useState(0);
   const [counts, setCounts] = useState({ total: 0, active: 0, trial: 0 });
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ plan: 'professional', status: 'trial' });
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
@@ -41,17 +42,40 @@ export default function Schools() {
     load();
   }, []);
 
-  async function create(e) {
+  function openCreate() {
+    setEditing(null);
+    setForm({ plan: 'professional', status: 'trial' });
+    setErrors({});
+    setFormError('');
+    setOpen(true);
+  }
+
+  function openEdit(row) {
+    setEditing(row);
+    setForm({
+      name: row.name || '',
+      email: row.email || '',
+      city: row.city || '',
+      phone: row.phone || '',
+      plan: row.plan || 'professional',
+      status: row.status || 'trial',
+    });
+    setErrors({});
+    setFormError('');
+    setOpen(true);
+  }
+
+  async function save(e) {
     e.preventDefault();
-    const nextErrors = requiredErrors(
-      form,
-      [
-        { name: 'name', required: true },
-        { name: 'adminEmail', required: true },
-        { name: 'adminPassword', required: true },
-      ],
-      t('common.required')
-    );
+    const required = editing
+      ? [{ name: 'name', required: true }]
+      : [
+          { name: 'name', required: true },
+          { name: 'adminName', required: true },
+          { name: 'adminEmail', required: true },
+          { name: 'adminPassword', required: true },
+        ];
+    const nextErrors = requiredErrors(form, required, t('common.required'));
     setErrors(nextErrors);
     setFormError('');
     if (Object.keys(nextErrors).length) {
@@ -59,9 +83,10 @@ export default function Schools() {
       return;
     }
     try {
-      await api.post('/schools', form);
+      if (editing) await api.patch(`/schools/${editing._id}`, form);
+      else await api.post('/schools', form);
       setOpen(false);
-      load();
+      load(page);
     } catch (err) {
       setFormError(apiErrorMessage(err, t('common.saveFailed')));
     }
@@ -84,7 +109,7 @@ export default function Schools() {
         title={t('schools.title')}
         subtitle={t('schools.subtitle')}
         actions={
-          <button className="btn-primary" onClick={() => { setForm({ plan: 'professional', status: 'trial' }); setErrors({}); setFormError(''); setOpen(true); }}>
+          <button className="btn-primary" onClick={openCreate}>
             {t('schools.add')}
           </button>
         }
@@ -118,6 +143,9 @@ export default function Schools() {
                   <Badge status={s.status}>{s.status}</Badge>
                 </td>
                 <td className="text-right space-x-2 whitespace-nowrap">
+                  <button className="text-sm text-pine-700 font-medium" onClick={() => openEdit(s)}>
+                    {t('common.edit')}
+                  </button>
                   {s.status !== 'active' && (
                     <button className="text-sm text-pine-700 font-medium" onClick={() => setStatus(s._id, 'active')}>
                       {t('schools.activate')}
@@ -139,17 +167,25 @@ export default function Schools() {
         <Pagination page={page} pages={pages} total={total} onPage={load} />
       </Busy>
       {open && (
-        <Modal title={t('schools.add')} onClose={() => setOpen(false)}>
-          <form onSubmit={create} className="space-y-3" noValidate>
+        <Modal title={editing ? t('schools.edit') : t('schools.add')} onClose={() => setOpen(false)}>
+          <form onSubmit={save} className="space-y-3" noValidate>
             <FormBanner>{formError}</FormBanner>
-            {[
-              ['name', 'setup.name', true],
-              ['adminName', 'schools.adminName', false],
-              ['adminEmail', 'schools.adminEmail', true],
-              ['adminPassword', 'schools.adminPassword', true],
-              ['city', 'setup.city', false],
-              ['phone', 'setup.phone', false],
-            ].map(([name, key, required]) => (
+            {(editing
+              ? [
+                  ['name', 'setup.name', true],
+                  ['email', 'setup.email', false],
+                  ['city', 'setup.city', false],
+                  ['phone', 'setup.phone', false],
+                ]
+              : [
+                  ['name', 'setup.name', true],
+                  ['adminName', 'schools.adminName', true],
+                  ['adminEmail', 'schools.adminEmail', true],
+                  ['adminPassword', 'schools.adminPassword', true],
+                  ['city', 'setup.city', false],
+                  ['phone', 'setup.phone', false],
+                ]
+            ).map(([name, key, required]) => (
               <div key={name}>
                 <label className="label">
                   {t(key)}
@@ -157,7 +193,7 @@ export default function Schools() {
                 </label>
                 <input
                   className={inputClass(errors[name])}
-                  type={name.includes('Password') ? 'password' : 'text'}
+                  type={name.includes('Password') ? 'password' : name === 'email' || name === 'adminEmail' ? 'email' : 'text'}
                   value={form[name] || ''}
                   onChange={(e) => setForm({ ...form, [name]: e.target.value })}
                 />
@@ -170,7 +206,7 @@ export default function Schools() {
               <option value="professional">Professional · {inr(9999, locale)}</option>
               <option value="enterprise">Enterprise · {inr(19999, locale)}</option>
             </select>
-            <button className="btn-primary w-full">{t('schools.createTenant')}</button>
+            <button className="btn-primary w-full">{editing ? t('schools.save') : t('schools.createTenant')}</button>
           </form>
         </Modal>
       )}

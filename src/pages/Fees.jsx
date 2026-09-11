@@ -21,6 +21,11 @@ export default function Fees() {
   const [amountError, setAmountError] = useState('');
   const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [classes, setClasses] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [structure, setStructure] = useState({ classId: '', sessionId: '', item: 'Tuition', amount: '' });
+  const [structErrors, setStructErrors] = useState({});
+  const [structError, setStructError] = useState('');
 
   async function load(nextPage = 1) {
     setLoading(true);
@@ -44,6 +49,55 @@ export default function Fees() {
     load(1);
   }, [status]);
 
+  useEffect(() => {
+    api
+      .get('/meta', { params: { keys: 'classes,sessions' } })
+      .then(({ data }) => {
+        setClasses(data.classes || []);
+        setSessions(data.sessions || []);
+      })
+      .catch(() => {});
+  }, []);
+
+  async function saveStructure(e) {
+    e.preventDefault();
+    const next = {};
+    if (isBlank(structure.classId)) next.classId = t('common.required');
+    if (isBlank(structure.item)) next.item = t('common.required');
+    if (isBlank(structure.amount) || Number(structure.amount) <= 0) next.amount = t('common.required');
+    setStructErrors(next);
+    setStructError('');
+    if (Object.keys(next).length) {
+      setStructError(t('common.fixFields'));
+      return;
+    }
+    try {
+      await api.post('/fees/structures', {
+        classId: structure.classId,
+        sessionId: structure.sessionId || undefined,
+        items: [{ name: structure.item, amount: Number(structure.amount) }],
+      });
+      setStructError('');
+      setStructure({ ...structure, item: 'Tuition', amount: '' });
+    } catch (err) {
+      setStructError(apiErrorMessage(err, t('common.saveFailed')));
+    }
+  }
+
+  async function generate() {
+    if (isBlank(structure.classId)) {
+      setStructErrors({ classId: t('common.required') });
+      setStructError(t('common.fixFields'));
+      return;
+    }
+    try {
+      await api.post('/fees/generate', { classId: structure.classId, sessionId: structure.sessionId || undefined });
+      load(1);
+    } catch (err) {
+      setStructError(apiErrorMessage(err, t('common.saveFailed')));
+    }
+  }
+
   async function collect(e) {
     e.preventDefault();
     if (isBlank(amount) || Number(amount) <= 0) {
@@ -66,6 +120,62 @@ export default function Fees() {
   return (
     <div>
       <PageHeader title={t('fees.title')} subtitle={t('fees.subtitle')} />
+      <form onSubmit={saveStructure} className="card p-5 mb-6 grid md:grid-cols-5 gap-3" noValidate>
+        <h3 className="md:col-span-5 font-semibold">{t('fees.structure')}</h3>
+        <div className="md:col-span-5">
+          <FormBanner>{structError}</FormBanner>
+        </div>
+        <div>
+          <select
+            className={inputClass(structErrors.classId)}
+            value={structure.classId}
+            onChange={(e) => setStructure({ ...structure, classId: e.target.value })}
+          >
+            <option value="">{t('field.class')} *</option>
+            {classes.map((c) => (
+              <option key={c._id} value={c._id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <FieldError>{structErrors.classId}</FieldError>
+        </div>
+        <select className="input" value={structure.sessionId} onChange={(e) => setStructure({ ...structure, sessionId: e.target.value })}>
+          <option value="">{t('academic.sessions')}</option>
+          {sessions.map((s) => (
+            <option key={s._id} value={s._id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+        <div>
+          <input
+            className={inputClass(structErrors.item)}
+            placeholder={`${t('fees.item')} *`}
+            value={structure.item}
+            onChange={(e) => setStructure({ ...structure, item: e.target.value })}
+          />
+          <FieldError>{structErrors.item}</FieldError>
+        </div>
+        <div>
+          <input
+            className={inputClass(structErrors.amount)}
+            type="number"
+            step="any"
+            min="0"
+            placeholder={`${t('fees.amount')} *`}
+            value={structure.amount}
+            onChange={(e) => setStructure({ ...structure, amount: e.target.value })}
+          />
+          <FieldError>{structErrors.amount}</FieldError>
+        </div>
+        <div className="flex gap-2">
+          <button className="btn-primary flex-1">{t('fees.addStructure')}</button>
+          <button type="button" className="btn-ghost flex-1" onClick={generate}>
+            {t('fees.generate')}
+          </button>
+        </div>
+      </form>
       {report && (
         <div className="grid sm:grid-cols-3 gap-4 mb-6">
           <StatCard label={t('fees.collected')} value={inr(report.collected, locale)} />
@@ -135,6 +245,7 @@ export default function Fees() {
               <input
                 className={inputClass(amountError)}
                 type="number"
+                step="any"
                 min="1"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}

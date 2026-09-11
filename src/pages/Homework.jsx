@@ -17,8 +17,8 @@ export default function Homework() {
       ]}
       fields={[
         { name: 'title', label: t('field.title'), required: true },
-        { name: 'classId', label: t('field.classId'), required: true },
-        { name: 'subjectId', label: t('field.subjectId') },
+        { name: 'classId', label: t('field.class'), type: 'select', meta: 'classes', required: true },
+        { name: 'subjectId', label: t('field.subject'), type: 'select', meta: 'subjects' },
         { name: 'dueDate', label: t('field.dueDate'), type: 'date', required: true },
         { name: 'description', label: t('field.description'), type: 'textarea' },
       ]}

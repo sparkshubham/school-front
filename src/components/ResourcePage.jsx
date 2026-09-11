@@ -27,6 +27,9 @@ export default function ResourcePage({
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
+  const [meta, setMeta] = useState({});
+
+  const metaKeys = [...new Set(fields.map((f) => f.meta).filter(Boolean))].sort().join(',');
 
   async function load(nextPage = page) {
     setLoading(true);
@@ -52,6 +55,23 @@ export default function ResourcePage({
     setPage(1);
     load(1);
   }, [path, qDebounced]);
+
+  useEffect(() => {
+    if (!metaKeys) return;
+    api
+      .get('/meta', { params: { keys: metaKeys } })
+      .then(({ data }) => setMeta(data || {}))
+      .catch(() => setMeta({}));
+  }, [metaKeys]);
+
+  function optionsFor(f) {
+    if (f.options?.length) return f.options;
+    const list = (f.meta && meta[f.meta]) || [];
+    return list.map((item) => ({
+      value: item._id,
+      label: f.optionLabel ? f.optionLabel(item) : item.name,
+    }));
+  }
 
   function startCreate() {
     setEditing(null);
@@ -163,7 +183,7 @@ export default function ResourcePage({
                   {f.label}
                   {f.required ? ' *' : ''}
                 </label>
-                {f.type === 'select' ? (
+                {f.type === 'select' || f.meta ? (
                   <select
                     className={inputClass(errors[f.name])}
                     value={form[f.name] || ''}
@@ -173,7 +193,7 @@ export default function ResourcePage({
                     }}
                   >
                     <option value="">{t('common.select')}</option>
-                    {(f.options || []).map((o) => (
+                    {optionsFor(f).map((o) => (
                       <option key={o.value} value={o.value}>
                         {o.label}
                       </option>
@@ -193,6 +213,7 @@ export default function ResourcePage({
                   <input
                     className={inputClass(errors[f.name])}
                     type={f.type || 'text'}
+                    step={f.type === 'number' ? f.step || 'any' : undefined}
                     value={form[f.name] ?? ''}
                     onChange={(e) => {
                       setForm({ ...form, [f.name]: e.target.value });
