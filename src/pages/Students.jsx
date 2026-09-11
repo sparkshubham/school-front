@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import api from '../api/client.js';
 import { PageHeader, Modal, Empty, Badge } from '../components/ui.jsx';
 import Pagination from '../components/Pagination.jsx';
@@ -19,6 +19,7 @@ export default function Students() {
   const [classId, setClassId] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ createLogin: true });
+  const metaLoaded = useRef(false);
 
   async function load(nextPage = page) {
     try {
@@ -40,17 +41,24 @@ export default function Students() {
   }, [q]);
 
   useEffect(() => {
-    api
-      .get('/meta', { params: { keys: 'classes,sections' } })
-      .then((r) => {
-        setClasses(r.data.classes || []);
-        setSections(r.data.sections || []);
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    load(1);
+    let live = true;
+    (async () => {
+      if (!metaLoaded.current) {
+        try {
+          const { data } = await api.get('/meta', { params: { keys: 'classes,sections' } });
+          if (!live) return;
+          setClasses(data.classes || []);
+          setSections(data.sections || []);
+          metaLoaded.current = true;
+        } catch {
+          /* keep empty filters */
+        }
+      }
+      if (live) await load(1);
+    })();
+    return () => {
+      live = false;
+    };
   }, [qDebounced, classId]);
 
   async function save(e) {

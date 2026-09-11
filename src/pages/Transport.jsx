@@ -40,8 +40,10 @@ export default function Transport() {
   }
 
   useEffect(() => {
-    loadVehicles(1);
-    loadRoutes(1);
+    (async () => {
+      await loadVehicles(1);
+      await loadRoutes(1);
+    })();
   }, []);
 
   return (

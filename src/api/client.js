@@ -4,10 +4,31 @@ const apiBase =
   import.meta.env.VITE_API_URL ||
   (import.meta.env.PROD ? 'https://school-backend-eosin-rho.vercel.app/api/v1' : '/api/v1');
 
+const defaultAdapter = axios.getAdapter(axios.defaults.adapter);
+
+function withConcurrency(adapter, max = 2) {
+  let active = 0;
+  const queue = [];
+  return async (config) => {
+    if (active >= max) {
+      await new Promise((resolve) => queue.push(resolve));
+    }
+    active += 1;
+    try {
+      return await adapter(config);
+    } finally {
+      active -= 1;
+      const next = queue.shift();
+      if (next) next();
+    }
+  };
+}
+
 const api = axios.create({
   baseURL: apiBase,
   withCredentials: true,
   timeout: 45000,
+  adapter: withConcurrency(defaultAdapter, 2),
 });
 
 const GET_CACHE_TTL = 60_000;
@@ -53,7 +74,7 @@ api.interceptors.request.use((config) => {
     if (pending) {
       config.adapter = () => pending;
     } else {
-      const adapter = config.adapter || axios.getAdapter(axios.defaults.adapter);
+      const adapter = config.adapter || defaultAdapter;
       config.adapter = (cfg) => {
         const req = Promise.resolve(adapter(cfg)).finally(() => INFLIGHT.delete(key));
         INFLIGHT.set(key, req);
@@ -95,6 +116,15 @@ api.interceptors.response.use(
         localStorage.removeItem('edunest_access');
         localStorage.removeItem('edunest_refresh');
       }
+    }
+    if (
+      original &&
+      isGet(original) &&
+      !original._retryTimeout &&
+      (error.code === 'ECONNABORTED' || error.response?.status === 503)
+    ) {
+      original._retryTimeout = true;
+      return api(original);
     }
     return Promise.reject(error);
   }
